@@ -38,6 +38,8 @@ export interface GroupMember {
   imageUrl: string | null;
   placeholderImageUrl: string | null;
   status: 'pending' | 'accepted' | 'declined' | 'placeholder';
+  visibleInGraph: boolean; // Whether to show this member in the graph visualization
+  isCreator: boolean; // Whether this member is the group creator
   invitedAt: Date;
   respondedAt: Date | null;
 }

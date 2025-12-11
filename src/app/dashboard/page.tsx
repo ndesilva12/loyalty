@@ -13,6 +13,7 @@ import { Group, Invitation, ClaimRequest } from '@/types';
 import {
   getUserGroups,
   createGroup,
+  addMember,
   getUserInvitations,
   respondToInvitation,
   getGroupClaimRequests,
@@ -56,7 +57,21 @@ export default function DashboardPage() {
   }) => {
     if (!user) return;
 
-    await createGroup(user.id, data.name, data.description, data.metrics);
+    // Create the group
+    const group = await createGroup(user.id, data.name, data.description, data.metrics);
+
+    // Add the creator as the first member
+    await addMember(
+      group.id,
+      user.emailAddresses[0]?.emailAddress || '',
+      user.fullName || user.firstName || 'Creator',
+      null, // placeholderImageUrl
+      user.id, // clerkId
+      'accepted', // status
+      user.imageUrl, // imageUrl (uses Google auth image if available)
+      true // isCreator
+    );
+
     setShowCreateModal(false);
     loadData();
   };

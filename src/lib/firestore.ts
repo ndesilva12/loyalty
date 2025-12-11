@@ -15,7 +15,8 @@ import {
   arrayUnion,
   arrayRemove,
 } from 'firebase/firestore';
-import { db } from './firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db, storage } from './firebase';
 import {
   Group,
   GroupMember,
@@ -169,7 +170,9 @@ export async function addMember(
   name: string,
   placeholderImageUrl: string | null = null,
   clerkId: string | null = null,
-  status: GroupMember['status'] = 'placeholder'
+  status: GroupMember['status'] = 'placeholder',
+  imageUrl: string | null = null,
+  isCreator: boolean = false
 ): Promise<GroupMember> {
   const memberId = uuidv4();
   const now = new Date();
@@ -181,35 +184,49 @@ export async function addMember(
     clerkId,
     email,
     name,
-    imageUrl: null,
+    imageUrl,
     placeholderImageUrl,
     status,
+    visibleInGraph: true,
+    isCreator,
     invitedAt: now,
-    respondedAt: null,
+    respondedAt: isCreator ? now : null,
   };
 
   await setDoc(doc(membersCollection, memberId), {
     ...member,
     invitedAt: Timestamp.fromDate(now),
-    respondedAt: null,
+    respondedAt: isCreator ? Timestamp.fromDate(now) : null,
   });
 
   return member;
+}
+
+export async function updateMemberVisibility(
+  memberId: string,
+  visibleInGraph: boolean
+): Promise<void> {
+  await updateDoc(doc(membersCollection, memberId), { visibleInGraph });
 }
 
 export async function getGroupMembers(groupId: string): Promise<GroupMember[]> {
   const q = query(membersCollection, where('groupId', '==', groupId));
   const docs = await getDocs(q);
 
-  return docs.docs.map((doc) => {
+  const members = docs.docs.map((doc) => {
     const data = doc.data();
     return {
       ...data,
       id: doc.id,
+      visibleInGraph: data.visibleInGraph ?? true,
+      isCreator: data.isCreator ?? false,
       invitedAt: convertTimestamp(data.invitedAt),
       respondedAt: data.respondedAt ? convertTimestamp(data.respondedAt) : null,
     } as GroupMember;
   });
+
+  // Sort so creator is first
+  return members.sort((a, b) => (b.isCreator ? 1 : 0) - (a.isCreator ? 1 : 0));
 }
 
 export async function getMember(memberId: string): Promise<GroupMember | null> {
@@ -571,11 +588,14 @@ export function subscribeToMembers(
       return {
         ...data,
         id: doc.id,
+        visibleInGraph: data.visibleInGraph ?? true,
+        isCreator: data.isCreator ?? false,
         invitedAt: convertTimestamp(data.invitedAt),
         respondedAt: data.respondedAt ? convertTimestamp(data.respondedAt) : null,
       } as GroupMember;
     });
-    callback(members);
+    // Sort so creator is first
+    callback(members.sort((a, b) => (b.isCreator ? 1 : 0) - (a.isCreator ? 1 : 0)));
   });
 }
 
@@ -596,4 +616,20 @@ export function subscribeToRatings(
     });
     callback(ratings);
   });
+}
+
+// ============ IMAGE UPLOAD ============
+
+export async function uploadMemberImage(
+  groupId: string,
+  file: File
+): Promise<string> {
+  const fileExtension = file.name.split('.').pop() || 'jpg';
+  const fileName = `${uuidv4()}.${fileExtension}`;
+  const storageRef = ref(storage, `groups/${groupId}/members/${fileName}`);
+
+  await uploadBytes(storageRef, file);
+  const downloadUrl = await getDownloadURL(storageRef);
+
+  return downloadUrl;
 }

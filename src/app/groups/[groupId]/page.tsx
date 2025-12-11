@@ -1,13 +1,12 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
 import Link from 'next/link';
 import {
   ArrowLeft,
   UserPlus,
-  Settings,
   BarChart3,
   Table,
   SlidersHorizontal,
@@ -18,14 +17,13 @@ import Header from '@/components/layout/Header';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import Modal from '@/components/ui/Modal';
+import Select from '@/components/ui/Select';
 import MemberGraph from '@/components/graph/MemberGraph';
-import MetricSelector from '@/components/graph/MetricSelector';
 import DataTable from '@/components/graph/DataTable';
 import AddMemberForm from '@/components/groups/AddMemberForm';
 import RatingForm from '@/components/groups/RatingForm';
 import { Group, GroupMember, Rating, AggregatedScore, ClaimRequest } from '@/types';
 import {
-  getGroup,
   subscribeToGroup,
   subscribeToMembers,
   subscribeToRatings,
@@ -35,6 +33,8 @@ import {
   calculateAggregatedScores,
   getGroupClaimRequests,
   respondToClaimRequest,
+  updateMemberVisibility,
+  uploadMemberImage,
 } from '@/lib/firestore';
 
 type ViewMode = 'graph' | 'table' | 'rate';
@@ -136,8 +136,11 @@ export default function GroupPage() {
     router.push(`/groups/${groupId}/members/${member.id}`);
   };
 
+  const handleToggleVisibility = async (memberId: string, visible: boolean) => {
+    await updateMemberVisibility(memberId, visible);
+  };
+
   const handleApproveClaimRequest = async (request: ClaimRequest) => {
-    // In a real app, you'd get the claimant's info from Clerk
     await respondToClaimRequest(request.id, true, 'Claimed User', null);
     setClaimRequests((prev) => prev.filter((r) => r.id !== request.id));
   };
@@ -146,6 +149,12 @@ export default function GroupPage() {
     await respondToClaimRequest(request.id, false, '', null);
     setClaimRequests((prev) => prev.filter((r) => r.id !== request.id));
   };
+
+  // Get visible members for the graph
+  const visibleMembers = members.filter((m) => m.visibleInGraph);
+
+  // Metric options for selectors
+  const metricOptions = group?.metrics.map((m) => ({ value: m.id, label: m.name })) || [];
 
   if (loading || !isLoaded) {
     return (
@@ -229,68 +238,96 @@ export default function GroupPage() {
           </div>
         </div>
 
-        {/* View mode tabs */}
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-          <Button
-            variant={viewMode === 'graph' ? 'primary' : 'ghost'}
-            onClick={() => setViewMode('graph')}
-            size="sm"
-          >
-            <BarChart3 className="w-4 h-4 mr-2" />
-            Graph
-          </Button>
-          <Button
-            variant={viewMode === 'table' ? 'primary' : 'ghost'}
-            onClick={() => setViewMode('table')}
-            size="sm"
-          >
-            <Table className="w-4 h-4 mr-2" />
-            Data Table
-          </Button>
-          {canRate && (
-            <Button
-              variant={viewMode === 'rate' ? 'primary' : 'ghost'}
-              onClick={() => setViewMode('rate')}
-              size="sm"
-            >
-              <SlidersHorizontal className="w-4 h-4 mr-2" />
-              Rate Members
-            </Button>
-          )}
-        </div>
+        {/* Unified control bar */}
+        <Card className="p-3 mb-6">
+          <div className="flex flex-wrap items-center gap-3">
+            {/* View mode buttons */}
+            <div className="flex gap-1 border-r border-gray-200 dark:border-gray-700 pr-3">
+              <Button
+                variant={viewMode === 'graph' ? 'primary' : 'ghost'}
+                onClick={() => setViewMode('graph')}
+                size="sm"
+              >
+                <BarChart3 className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Graph</span>
+              </Button>
+              <Button
+                variant={viewMode === 'table' ? 'primary' : 'ghost'}
+                onClick={() => setViewMode('table')}
+                size="sm"
+              >
+                <Table className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Data</span>
+              </Button>
+              {canRate && (
+                <Button
+                  variant={viewMode === 'rate' ? 'primary' : 'ghost'}
+                  onClick={() => setViewMode('rate')}
+                  size="sm"
+                >
+                  <SlidersHorizontal className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Rate</span>
+                </Button>
+              )}
+            </div>
+
+            {/* Metric selectors - only show for graph view */}
+            {viewMode === 'graph' && group.metrics.length > 0 && (
+              <>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                    X:
+                  </label>
+                  <select
+                    value={xMetricId}
+                    onChange={(e) => setXMetricId(e.target.value)}
+                    className="text-sm px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                  >
+                    {metricOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                    Y:
+                  </label>
+                  <select
+                    value={yMetricId}
+                    onChange={(e) => setYMetricId(e.target.value)}
+                    className="text-sm px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                  >
+                    {metricOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            )}
+          </div>
+        </Card>
 
         {/* Content */}
         {viewMode === 'graph' && (
-          <div className="space-y-6">
-            {/* Metric selectors */}
-            {group.metrics.length > 0 && (
-              <Card className="p-4">
-                <MetricSelector
+          <Card className="p-4 sm:p-6">
+            <div className="w-full" style={{ paddingLeft: '3rem', paddingBottom: '2rem' }}>
+              <div className="w-full aspect-[4/3] lg:aspect-[16/10] max-h-[70vh]">
+                <MemberGraph
+                  members={visibleMembers}
                   metrics={group.metrics}
+                  scores={scores}
                   xMetricId={xMetricId}
                   yMetricId={yMetricId}
-                  onXMetricChange={setXMetricId}
-                  onYMetricChange={setYMetricId}
+                  onMemberClick={handleMemberClick}
                 />
-              </Card>
-            )}
-
-            {/* Graph */}
-            <Card className="p-6 md:p-8">
-              <div className="ml-8 md:ml-12 mb-8 md:mb-12">
-                <div className="aspect-square max-h-[600px]">
-                  <MemberGraph
-                    members={members}
-                    metrics={group.metrics}
-                    scores={scores}
-                    xMetricId={xMetricId}
-                    yMetricId={yMetricId}
-                    onMemberClick={handleMemberClick}
-                  />
-                </div>
               </div>
-            </Card>
-          </div>
+            </div>
+          </Card>
         )}
 
         {viewMode === 'table' && (
@@ -301,6 +338,8 @@ export default function GroupPage() {
               scores={scores}
               groupId={groupId}
               onMemberClick={handleMemberClick}
+              onToggleVisibility={handleToggleVisibility}
+              showVisibilityToggle={true}
             />
           </Card>
         )}
@@ -348,6 +387,7 @@ export default function GroupPage() {
         <AddMemberForm
           onSubmit={handleAddMember}
           onCancel={() => setShowAddMemberModal(false)}
+          onUploadImage={(file) => uploadMemberImage(groupId, file)}
         />
       </Modal>
 

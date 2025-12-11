@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import Link from 'next/link';
+import { Eye, EyeOff, Crown } from 'lucide-react';
 import { GroupMember, Metric, AggregatedScore } from '@/types';
 import Avatar from '@/components/ui/Avatar';
 
@@ -11,6 +12,8 @@ interface DataTableProps {
   scores: AggregatedScore[];
   groupId: string;
   onMemberClick?: (member: GroupMember) => void;
+  onToggleVisibility?: (memberId: string, visible: boolean) => void;
+  showVisibilityToggle?: boolean;
 }
 
 export default function DataTable({
@@ -19,6 +22,8 @@ export default function DataTable({
   scores,
   groupId,
   onMemberClick,
+  onToggleVisibility,
+  showVisibilityToggle = false,
 }: DataTableProps) {
   const activeMembers = useMemo(
     () => members.filter((m) => m.status === 'accepted' || m.status === 'placeholder'),
@@ -39,11 +44,23 @@ export default function DataTable({
     return score?.totalRatings ?? 0;
   };
 
+  const getScoreColor = (value: number) => {
+    if (value >= 75) return 'text-green-600 dark:text-green-400';
+    if (value >= 50) return 'text-blue-600 dark:text-blue-400';
+    if (value >= 25) return 'text-yellow-600 dark:text-yellow-400';
+    return 'text-red-600 dark:text-red-400';
+  };
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse">
         <thead>
           <tr className="border-b border-gray-200 dark:border-gray-700">
+            {showVisibilityToggle && (
+              <th className="text-center py-3 px-2 font-semibold text-gray-900 dark:text-white w-12">
+                <Eye className="w-4 h-4 mx-auto text-gray-400" />
+              </th>
+            )}
             <th className="text-left py-3 px-4 font-semibold text-gray-900 dark:text-white sticky left-0 bg-white dark:bg-gray-900 z-10">
               Member
             </th>
@@ -62,8 +79,29 @@ export default function DataTable({
           {activeMembers.map((member) => (
             <tr
               key={member.id}
-              className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+              className={`border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${
+                !member.visibleInGraph ? 'opacity-50' : ''
+              }`}
             >
+              {showVisibilityToggle && (
+                <td className="py-3 px-2 text-center">
+                  <button
+                    onClick={() => onToggleVisibility?.(member.id, !member.visibleInGraph)}
+                    className={`p-1.5 rounded-lg transition-colors ${
+                      member.visibleInGraph
+                        ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                        : 'bg-gray-100 dark:bg-gray-800 text-gray-400'
+                    }`}
+                    title={member.visibleInGraph ? 'Hide from graph' : 'Show in graph'}
+                  >
+                    {member.visibleInGraph ? (
+                      <Eye className="w-4 h-4" />
+                    ) : (
+                      <EyeOff className="w-4 h-4" />
+                    )}
+                  </button>
+                </td>
+              )}
               <td className="py-3 px-4 sticky left-0 bg-white dark:bg-gray-900 z-10">
                 <Link
                   href={`/groups/${groupId}/members/${member.id}`}
@@ -81,11 +119,16 @@ export default function DataTable({
                     size="sm"
                   />
                   <div>
-                    <div className="font-medium text-gray-900 dark:text-white">
+                    <div className="font-medium text-gray-900 dark:text-white flex items-center gap-1.5">
                       {member.name}
+                      {member.isCreator && (
+                        <span title="Group Creator">
+                          <Crown className="w-3.5 h-3.5 text-yellow-500" />
+                        </span>
+                      )}
                     </div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">
-                      {member.status === 'placeholder' ? 'Pending' : 'Active'}
+                      {member.isCreator ? 'Creator' : member.status === 'placeholder' ? 'Pending' : 'Active'}
                     </div>
                   </div>
                 </Link>
@@ -93,14 +136,6 @@ export default function DataTable({
               {metrics.map((metric) => {
                 const score = getScore(member.id, metric.id);
                 const count = getRatingCount(member.id, metric.id);
-
-                // Color coding based on score
-                const getScoreColor = (value: number) => {
-                  if (value >= 75) return 'text-green-600 dark:text-green-400';
-                  if (value >= 50) return 'text-blue-600 dark:text-blue-400';
-                  if (value >= 25) return 'text-yellow-600 dark:text-yellow-400';
-                  return 'text-red-600 dark:text-red-400';
-                };
 
                 return (
                   <td
