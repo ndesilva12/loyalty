@@ -81,7 +81,6 @@ export default function CreateGroupForm({ onSubmit, onCancel }: CreateGroupFormP
           maxValue: 100,
           prefix: '' as const,
           suffix: '' as const,
-          displayMode: 'scaled' as const,
         })),
       });
     } catch (err) {

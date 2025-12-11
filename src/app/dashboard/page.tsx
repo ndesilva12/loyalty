@@ -53,7 +53,7 @@ export default function DashboardPage() {
   const handleCreateGroup = async (data: {
     name: string;
     description: string;
-    metrics: { name: string; description: string; order: number; minValue?: number; maxValue?: number; prefix?: string; suffix?: string; displayMode?: string }[];
+    metrics: { name: string; description: string; order: number; minValue?: number; maxValue?: number; prefix?: string; suffix?: string }[];
   }) => {
     if (!user) return;
 
@@ -66,7 +66,6 @@ export default function DashboardPage() {
       maxValue: m.maxValue ?? 100,
       prefix: (m.prefix ?? '') as '' | '#' | '$' | '€' | '£',
       suffix: (m.suffix ?? '') as '' | '%' | 'K' | 'M' | 'B' | 'T' | ' thousand' | ' million' | ' billion' | ' trillion',
-      displayMode: (m.displayMode ?? 'scaled') as 'nominal' | 'scaled',
     }));
     const group = await createGroup(user.id, data.name, data.description, metricsWithDefaults);
 

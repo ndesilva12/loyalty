@@ -1,7 +1,5 @@
 // Core data types for the Loyalty application
 
-export type MetricDisplayMode = 'nominal' | 'scaled';
-
 export type MetricPrefix = '' | '#' | '$' | '€' | '£';
 export type MetricSuffix = '' | '%' | 'K' | 'M' | 'B' | 'T' | ' thousand' | ' million' | ' billion' | ' trillion';
 
@@ -35,7 +33,6 @@ export interface Metric {
   maxValue: number; // Default 100, max 1,000,000
   prefix: MetricPrefix; // e.g., '$', '#'
   suffix: MetricSuffix; // e.g., '%', 'K', 'M'
-  displayMode: MetricDisplayMode; // 'nominal' = exact values, 'scaled' = auto-distribute (default)
 }
 
 export interface GroupMember {
@@ -137,7 +134,6 @@ export const createDefaultMetric = (name: string, description: string, order: nu
   maxValue: 100,
   prefix: '',
   suffix: '',
-  displayMode: 'scaled',
 });
 
 // Helper to format metric value with prefix/suffix

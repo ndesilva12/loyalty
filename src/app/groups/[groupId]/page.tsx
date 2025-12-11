@@ -24,7 +24,7 @@ import MemberGraph from '@/components/graph/MemberGraph';
 import DataTable from '@/components/graph/DataTable';
 import AddMemberForm from '@/components/groups/AddMemberForm';
 import RatingForm from '@/components/groups/RatingForm';
-import { Group, GroupMember, Rating, AggregatedScore, ClaimRequest, Metric, MetricPrefix, MetricSuffix, MetricDisplayMode } from '@/types';
+import { Group, GroupMember, Rating, AggregatedScore, ClaimRequest, Metric, MetricPrefix, MetricSuffix } from '@/types';
 import {
   subscribeToGroup,
   subscribeToMembers,
@@ -203,7 +203,6 @@ export default function GroupPage() {
       maxValue: 100,
       prefix: '',
       suffix: '',
-      displayMode: 'scaled',
     };
     setEditingMetrics([...editingMetrics, newMetric]);
   };
@@ -640,22 +639,6 @@ export default function GroupPage() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Display Mode</label>
-                <select
-                  value={metric.displayMode}
-                  onChange={(e) => handleUpdateMetric(index, { displayMode: e.target.value as MetricDisplayMode })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-sm"
-                >
-                  <option value="scaled">Scaled (auto-distribute across graph)</option>
-                  <option value="nominal">Nominal (exact values)</option>
-                </select>
-                <p className="text-xs text-gray-400 mt-1">
-                  {metric.displayMode === 'scaled'
-                    ? 'Data points will be spread across the entire graph space'
-                    : 'Data points will be plotted at their exact value positions'}
-                </p>
-              </div>
             </div>
           ))}
 

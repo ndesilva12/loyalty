@@ -59,12 +59,11 @@ export default function MemberGraph({
     return `${metric.prefix}${value.toFixed(1)}${metric.suffix}`;
   };
 
-  // Calculate positions for each member (considering scaled vs nominal display)
+  // Calculate positions for each member
   const plottedMembers = useMemo(() => {
     const activeMembers = members.filter((m) => m.status === 'accepted' || m.status === 'placeholder');
 
-    // Get raw scores for each member
-    const rawData = activeMembers.map((member) => {
+    return activeMembers.map((member) => {
       const xScore = scores.find(
         (s) => s.memberId === member.id && s.metricId === xMetricId
       );
@@ -72,54 +71,25 @@ export default function MemberGraph({
         (s) => s.memberId === member.id && s.metricId === yMetricId
       );
 
-      return {
-        member,
-        xRaw: xScore?.averageValue ?? 50,
-        yRaw: yScore?.averageValue ?? 50,
-      };
-    });
+      const xRaw = xScore?.averageValue ?? 50;
+      const yRaw = yScore?.averageValue ?? 50;
 
-    // Calculate scaled positions if needed
-    const xIsScaled = xMetric?.displayMode === 'scaled';
-    const yIsScaled = yMetric?.displayMode === 'scaled';
-
-    // For scaled mode, distribute values evenly across the graph
-    // Sort by value and assign evenly spaced positions
-    let xPositions: Record<string, number> = {};
-    let yPositions: Record<string, number> = {};
-
-    if (xIsScaled && rawData.length > 1) {
-      const sorted = [...rawData].sort((a, b) => a.xRaw - b.xRaw);
-      sorted.forEach((item, index) => {
-        // Distribute from 5% to 95% to keep avatars visible
-        xPositions[item.member.id] = 5 + (index / (sorted.length - 1)) * 90;
-      });
-    }
-
-    if (yIsScaled && rawData.length > 1) {
-      const sorted = [...rawData].sort((a, b) => a.yRaw - b.yRaw);
-      sorted.forEach((item, index) => {
-        yPositions[item.member.id] = 5 + (index / (sorted.length - 1)) * 90;
-      });
-    }
-
-    return rawData.map((data) => {
-      // For nominal mode, map the raw value to a percentage of the metric range
+      // Map the raw value to a percentage of the metric range
       const xMin = xMetric?.minValue ?? 0;
       const xMax = xMetric?.maxValue ?? 100;
       const yMin = yMetric?.minValue ?? 0;
       const yMax = yMetric?.maxValue ?? 100;
 
-      // Calculate nominal position as percentage of range
-      const xNominal = xMax > xMin ? ((data.xRaw - xMin) / (xMax - xMin)) * 100 : 50;
-      const yNominal = yMax > yMin ? ((data.yRaw - yMin) / (yMax - yMin)) * 100 : 50;
+      // Calculate position as percentage of range
+      const xValue = xMax > xMin ? ((xRaw - xMin) / (xMax - xMin)) * 100 : 50;
+      const yValue = yMax > yMin ? ((yRaw - yMin) / (yMax - yMin)) * 100 : 50;
 
       return {
-        member: data.member,
-        xValue: xIsScaled ? (xPositions[data.member.id] ?? xNominal) : xNominal,
-        yValue: yIsScaled ? (yPositions[data.member.id] ?? yNominal) : yNominal,
-        xRaw: data.xRaw,
-        yRaw: data.yRaw,
+        member,
+        xValue,
+        yValue,
+        xRaw,
+        yRaw,
       };
     });
   }, [members, scores, xMetricId, yMetricId, xMetric, yMetric]);

@@ -2,11 +2,11 @@ import { Group, GroupMember, Rating, Metric, AggregatedScore } from '@/types';
 
 // Mock metrics for a team
 export const mockMetrics: Metric[] = [
-  { id: 'metric-1', name: 'Leadership', description: 'Ability to guide and inspire others', order: 0, minValue: 0, maxValue: 100, prefix: '', suffix: '', displayMode: 'scaled' },
-  { id: 'metric-2', name: 'Creativity', description: 'Innovative thinking and problem solving', order: 1, minValue: 0, maxValue: 100, prefix: '', suffix: '', displayMode: 'scaled' },
-  { id: 'metric-3', name: 'Communication', description: 'Clear and effective communication skills', order: 2, minValue: 0, maxValue: 100, prefix: '', suffix: '', displayMode: 'scaled' },
-  { id: 'metric-4', name: 'Reliability', description: 'Dependable and consistent performance', order: 3, minValue: 0, maxValue: 100, prefix: '', suffix: '', displayMode: 'scaled' },
-  { id: 'metric-5', name: 'Technical Skill', description: 'Domain expertise and technical abilities', order: 4, minValue: 0, maxValue: 100, prefix: '', suffix: '', displayMode: 'scaled' },
+  { id: 'metric-1', name: 'Leadership', description: 'Ability to guide and inspire others', order: 0, minValue: 0, maxValue: 100, prefix: '', suffix: '' },
+  { id: 'metric-2', name: 'Creativity', description: 'Innovative thinking and problem solving', order: 1, minValue: 0, maxValue: 100, prefix: '', suffix: '' },
+  { id: 'metric-3', name: 'Communication', description: 'Clear and effective communication skills', order: 2, minValue: 0, maxValue: 100, prefix: '', suffix: '' },
+  { id: 'metric-4', name: 'Reliability', description: 'Dependable and consistent performance', order: 3, minValue: 0, maxValue: 100, prefix: '', suffix: '' },
+  { id: 'metric-5', name: 'Technical Skill', description: 'Domain expertise and technical abilities', order: 4, minValue: 0, maxValue: 100, prefix: '', suffix: '' },
 ];
 
 // Mock group

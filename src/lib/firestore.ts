@@ -63,7 +63,6 @@ export async function createGroup(
     maxValue: m.maxValue ?? 100,
     prefix: m.prefix ?? '',
     suffix: m.suffix ?? '',
-    displayMode: m.displayMode ?? 'scaled',
   }));
 
   const group: Group = {
@@ -99,7 +98,6 @@ export async function getGroup(groupId: string): Promise<Group | null> {
     maxValue: m.maxValue ?? 100,
     prefix: m.prefix ?? '',
     suffix: m.suffix ?? '',
-    displayMode: m.displayMode ?? 'scaled',
   }));
 
   return {
@@ -136,7 +134,6 @@ export async function getUserGroups(clerkId: string): Promise<Group[]> {
       maxValue: m.maxValue ?? 100,
       prefix: m.prefix ?? '',
       suffix: m.suffix ?? '',
-      displayMode: m.displayMode ?? 'scaled',
     }));
 
     groupMap.set(docSnap.id, {
@@ -623,7 +620,6 @@ export function subscribeToGroup(
       maxValue: m.maxValue ?? 100,
       prefix: m.prefix ?? '',
       suffix: m.suffix ?? '',
-      displayMode: m.displayMode ?? 'scaled',
     }));
 
     callback({
