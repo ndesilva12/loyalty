@@ -15,6 +15,7 @@ import {
   Settings,
   Anchor,
   Settings2,
+  Lock,
 } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Button from '@/components/ui/Button';
@@ -67,6 +68,8 @@ export default function GroupPage() {
   const [editingMetrics, setEditingMetrics] = useState<Metric[]>([]);
   const [editingGroupName, setEditingGroupName] = useState('');
   const [editingGroupDescription, setEditingGroupDescription] = useState('');
+  const [editingLockedYMetricId, setEditingLockedYMetricId] = useState<string | null>(null);
+  const [editingLockedXMetricId, setEditingLockedXMetricId] = useState<string | null>(null);
   const [savingGroupSettings, setSavingGroupSettings] = useState(false);
 
   // Graph state
@@ -85,8 +88,16 @@ export default function GroupPage() {
     const unsubscribeGroup = subscribeToGroup(groupId, (updatedGroup) => {
       setGroup(updatedGroup);
       if (updatedGroup && updatedGroup.metrics.length > 0) {
-        if (!xMetricId) setXMetricId(updatedGroup.metrics[0].id);
-        if (!yMetricId && updatedGroup.metrics.length > 1) {
+        // Use locked metrics if set, otherwise use defaults
+        if (updatedGroup.lockedXMetricId) {
+          setXMetricId(updatedGroup.lockedXMetricId);
+        } else if (!xMetricId) {
+          setXMetricId(updatedGroup.metrics[0].id);
+        }
+
+        if (updatedGroup.lockedYMetricId) {
+          setYMetricId(updatedGroup.lockedYMetricId);
+        } else if (!yMetricId && updatedGroup.metrics.length > 1) {
           setYMetricId(updatedGroup.metrics[1].id);
         } else if (!yMetricId) {
           setYMetricId(updatedGroup.metrics[0].id);
@@ -242,6 +253,8 @@ export default function GroupPage() {
     if (group) {
       setEditingGroupName(group.name);
       setEditingGroupDescription(group.description || '');
+      setEditingLockedYMetricId(group.lockedYMetricId);
+      setEditingLockedXMetricId(group.lockedXMetricId);
       setShowGroupSettingsModal(true);
     }
   };
@@ -253,12 +266,18 @@ export default function GroupPage() {
       await updateGroup(groupId, {
         name: editingGroupName.trim(),
         description: editingGroupDescription.trim(),
+        lockedYMetricId: editingLockedYMetricId,
+        lockedXMetricId: editingLockedXMetricId,
       });
       setShowGroupSettingsModal(false);
     } finally {
       setSavingGroupSettings(false);
     }
   };
+
+  // Check if axes are locked
+  const isYAxisLocked = !!group?.lockedYMetricId;
+  const isXAxisLocked = !!group?.lockedXMetricId;
 
   const handleRemoveMember = async (memberId: string) => {
     if (!confirm('Are you sure you want to remove this member? This will also delete their ratings.')) {
@@ -407,7 +426,7 @@ export default function GroupPage() {
                 size="sm"
               >
                 <BarChart3 className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">Graph</span>
+                <span className="hidden sm:inline">Scale</span>
               </Button>
               <Button
                 variant={viewMode === 'table' ? 'primary' : 'ghost'}
@@ -574,6 +593,7 @@ export default function GroupPage() {
           onCancel={() => setShowAddMemberModal(false)}
           onUploadImage={(file) => uploadMemberImage(groupId, file)}
           existingEmails={members.map((m) => m.email.toLowerCase())}
+          groupId={groupId}
         />
       </Modal>
 

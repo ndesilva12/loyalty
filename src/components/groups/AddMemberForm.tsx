@@ -1,50 +1,21 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Upload, Link as LinkIcon, X, UserPlus } from 'lucide-react';
+import { Upload, Link as LinkIcon, X, Copy, Check } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
-import Avatar from '@/components/ui/Avatar';
 
 type ImageSourceType = 'url' | 'upload';
-
-// Suggested members (mock accounts for demo/testing)
-const suggestedMembers = [
-  {
-    name: 'Sarah Johnson',
-    email: 'sarah.johnson@example.com',
-    imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah&backgroundColor=ffdfbf',
-  },
-  {
-    name: 'Marcus Williams',
-    email: 'marcus.williams@example.com',
-    imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Marcus&backgroundColor=c0aede',
-  },
-  {
-    name: 'Emily Davis',
-    email: 'emily.davis@example.com',
-    imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emily&backgroundColor=d1f4d1',
-  },
-  {
-    name: 'James Taylor',
-    email: 'james.taylor@example.com',
-    imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=James&backgroundColor=ffd5dc',
-  },
-  {
-    name: 'Olivia Martinez',
-    email: 'olivia.martinez@example.com',
-    imageUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Olivia&backgroundColor=fff4c0',
-  },
-];
 
 interface AddMemberFormProps {
   onSubmit: (data: { email: string; name: string; placeholderImageUrl: string }) => Promise<void>;
   onCancel: () => void;
   onUploadImage?: (file: File) => Promise<string>;
   existingEmails?: string[];
+  groupId: string;
 }
 
-export default function AddMemberForm({ onSubmit, onCancel, onUploadImage, existingEmails = [] }: AddMemberFormProps) {
+export default function AddMemberForm({ onSubmit, onCancel, onUploadImage, existingEmails = [], groupId }: AddMemberFormProps) {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [placeholderImageUrl, setPlaceholderImageUrl] = useState('');
@@ -53,20 +24,14 @@ export default function AddMemberForm({ onSubmit, onCancel, onUploadImage, exist
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Filter out already added members
-  const availableSuggestions = suggestedMembers.filter(
-    (s) => !existingEmails.includes(s.email.toLowerCase())
-  );
-
-  const handleSelectSuggestion = (suggestion: typeof suggestedMembers[0]) => {
-    setName(suggestion.name);
-    setEmail(suggestion.email);
-    setPlaceholderImageUrl(suggestion.imageUrl);
-    setImageSourceType('url');
-    // Clear any file selection
-    handleClearFile();
+  const handleCopyInviteLink = async () => {
+    const inviteLink = `${window.location.origin}/join/${groupId}`;
+    await navigator.clipboard.writeText(inviteLink);
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -159,34 +124,32 @@ export default function AddMemberForm({ onSubmit, onCancel, onUploadImage, exist
         </div>
       )}
 
-      {/* Suggestions Section */}
-      {availableSuggestions.length > 0 && (
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Quick Add (Suggestions)
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {availableSuggestions.map((suggestion) => (
-              <button
-                key={suggestion.email}
-                type="button"
-                onClick={() => handleSelectSuggestion(suggestion)}
-                className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full text-sm hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-300 dark:hover:border-blue-700 transition-colors"
-              >
-                <Avatar
-                  src={suggestion.imageUrl}
-                  alt={suggestion.name}
-                  size="xs"
-                />
-                <span className="text-gray-700 dark:text-gray-300">{suggestion.name}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Copy Invite Link Section */}
+      <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+        <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+          Share this link to let people join your group:
+        </p>
+        <button
+          type="button"
+          onClick={handleCopyInviteLink}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-blue-300 dark:border-blue-700 rounded-lg text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
+        >
+          {linkCopied ? (
+            <>
+              <Check className="w-4 h-4 text-green-500" />
+              <span className="text-green-600 dark:text-green-400">Link Copied!</span>
+            </>
+          ) : (
+            <>
+              <Copy className="w-4 h-4" />
+              <span>Copy Invite Link</span>
+            </>
+          )}
+        </button>
+      </div>
 
       <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Or enter details manually:</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Or add a member directly:</p>
       </div>
 
       <Input

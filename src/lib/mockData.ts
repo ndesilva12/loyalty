@@ -16,6 +16,8 @@ export const mockGroup: Group = {
   description: 'Our core product development team for the flagship application',
   captainId: 'demo-user-1',
   metrics: mockMetrics,
+  lockedYMetricId: null,
+  lockedXMetricId: null,
   createdAt: new Date('2024-01-15'),
   updatedAt: new Date('2024-03-01'),
 };

@@ -20,6 +20,8 @@ export interface Group {
   description: string;
   captainId: string; // Clerk user ID of the group captain
   metrics: Metric[];
+  lockedYMetricId: string | null; // If set, this metric is locked as the Y-axis
+  lockedXMetricId: string | null; // If set, this metric is locked as the X-axis
   createdAt: Date;
   updatedAt: Date;
 }
