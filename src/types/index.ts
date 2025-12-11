@@ -35,6 +35,8 @@ export interface Metric {
   suffix: MetricSuffix; // e.g., '%', 'K', 'M'
 }
 
+export type MemberDisplayMode = 'user' | 'custom';
+
 export interface GroupMember {
   id: string;
   groupId: string;
@@ -49,6 +51,10 @@ export interface GroupMember {
   isCaptain: boolean; // Whether this member is the group captain
   invitedAt: Date;
   respondedAt: Date | null;
+  // Captain-controlled display settings
+  displayMode: MemberDisplayMode; // 'user' = show actual profile, 'custom' = show captain-set values
+  customName: string | null; // Captain-set display name (used when displayMode is 'custom')
+  customImageUrl: string | null; // Captain-set display image (used when displayMode is 'custom')
 }
 
 export interface Rating {
@@ -90,6 +96,19 @@ export interface Invitation {
   status: 'pending' | 'accepted' | 'declined';
   createdAt: Date;
   respondedAt: Date | null;
+}
+
+export interface ClaimToken {
+  id: string;
+  groupId: string;
+  memberId: string; // The placeholder member to claim
+  email: string | null; // Target email (null if shareable link)
+  token: string; // Unique token for the claim link
+  createdBy: string; // Captain's clerk ID
+  status: 'pending' | 'claimed' | 'expired';
+  createdAt: Date;
+  claimedAt: Date | null;
+  claimedBy: string | null; // Clerk ID of who claimed it
 }
 
 // Graph visualization types
@@ -139,4 +158,20 @@ export const createDefaultMetric = (name: string, description: string, order: nu
 // Helper to format metric value with prefix/suffix
 export const formatMetricValue = (value: number, metric: Metric): string => {
   return `${metric.prefix}${value}${metric.suffix}`;
+};
+
+// Helper to get display name for a member (respects displayMode)
+export const getMemberDisplayName = (member: GroupMember): string => {
+  if (member.displayMode === 'custom' && member.customName) {
+    return member.customName;
+  }
+  return member.name;
+};
+
+// Helper to get display image for a member (respects displayMode)
+export const getMemberDisplayImage = (member: GroupMember): string | null => {
+  if (member.displayMode === 'custom' && member.customImageUrl) {
+    return member.customImageUrl;
+  }
+  return member.imageUrl || member.placeholderImageUrl;
 };

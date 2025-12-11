@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { User, ExternalLink, X } from 'lucide-react';
-import { GroupMember, Metric, AggregatedScore, Rating } from '@/types';
+import { GroupMember, Metric, AggregatedScore, Rating, getMemberDisplayName, getMemberDisplayImage } from '@/types';
 import Button from '@/components/ui/Button';
 import Slider from '@/components/ui/Slider';
 
@@ -225,16 +225,18 @@ export default function MemberGraph({
     >
       {/* Y-axis label */}
       <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full pr-2 md:pr-4">
-        <div className="transform -rotate-90 whitespace-nowrap text-sm font-medium text-gray-600 dark:text-gray-400">
-          {yMetric?.name || 'Y Axis'}
+        <div className="transform -rotate-90 whitespace-nowrap">
+          <span className="px-3 py-1.5 rounded-full text-sm md:text-base font-semibold bg-gradient-to-r from-blue-500/10 to-cyan-500/10 dark:from-blue-400/20 dark:to-cyan-400/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
+            {yMetric?.name || 'Y Axis'}
+          </span>
         </div>
       </div>
 
       {/* X-axis label */}
       <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full pt-2 md:pt-4">
-        <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
+        <span className="px-3 py-1.5 rounded-full text-sm md:text-base font-semibold bg-gradient-to-r from-emerald-500/10 to-teal-500/10 dark:from-emerald-400/20 dark:to-teal-400/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
           {xMetric?.name || 'X Axis'}
-        </div>
+        </span>
       </div>
 
       {/* Grid lines */}
@@ -298,7 +300,8 @@ export default function MemberGraph({
       {/* Plotted members */}
       <div className="absolute inset-6 md:inset-8">
         {plottedMembers.map((data) => {
-          const imageUrl = data.member.imageUrl || data.member.placeholderImageUrl;
+          const displayImage = getMemberDisplayImage(data.member);
+          const displayName = getMemberDisplayName(data.member);
 
           return (
             <div
@@ -314,10 +317,10 @@ export default function MemberGraph({
               onClick={(e) => handleClick(data, e)}
             >
               <div className="w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden border-2 border-white dark:border-gray-800 shadow-lg bg-gray-200 dark:bg-gray-700">
-                {imageUrl ? (
+                {displayImage ? (
                   <Image
-                    src={imageUrl}
-                    alt={data.member.name}
+                    src={displayImage}
+                    alt={displayName}
                     width={48}
                     height={48}
                     className="w-full h-full object-cover"
@@ -359,10 +362,10 @@ export default function MemberGraph({
             {/* Member info header */}
             <div className="flex items-center gap-3 mb-3">
               <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex-shrink-0">
-                {popup.member.imageUrl || popup.member.placeholderImageUrl ? (
+                {getMemberDisplayImage(popup.member) ? (
                   <Image
-                    src={popup.member.imageUrl || popup.member.placeholderImageUrl || ''}
-                    alt={popup.member.name}
+                    src={getMemberDisplayImage(popup.member) || ''}
+                    alt={getMemberDisplayName(popup.member)}
                     width={48}
                     height={48}
                     className="w-full h-full object-cover"
@@ -375,7 +378,7 @@ export default function MemberGraph({
               </div>
               <div className="flex-1 min-w-0">
                 <div className="font-semibold text-gray-900 dark:text-white truncate">
-                  {popup.member.name}
+                  {getMemberDisplayName(popup.member)}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400">
                   {popup.member.status === 'placeholder' ? 'Pending' : 'Active'}

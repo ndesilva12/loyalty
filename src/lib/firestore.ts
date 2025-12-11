@@ -24,6 +24,7 @@ import {
   AggregatedScore,
   Invitation,
   ClaimRequest,
+  ClaimToken,
   Metric,
   createDefaultMetric,
 } from '@/types';
@@ -35,6 +36,7 @@ const membersCollection = collection(db, 'members');
 const ratingsCollection = collection(db, 'ratings');
 const invitationsCollection = collection(db, 'invitations');
 const claimRequestsCollection = collection(db, 'claimRequests');
+const claimTokensCollection = collection(db, 'claimTokens');
 
 // Helper to convert Firestore timestamps
 const convertTimestamp = (timestamp: Timestamp | Date | null): Date => {
@@ -232,6 +234,9 @@ export async function addMember(
     isCaptain,
     invitedAt: now,
     respondedAt: isCaptain ? now : null,
+    displayMode: 'user', // Default to showing user's actual profile
+    customName: null,
+    customImageUrl: null,
   };
 
   await setDoc(doc(membersCollection, memberId), {
@@ -265,6 +270,10 @@ export async function getGroupMembers(groupId: string): Promise<GroupMember[]> {
       isCaptain,
       invitedAt: convertTimestamp(data.invitedAt),
       respondedAt: data.respondedAt ? convertTimestamp(data.respondedAt) : null,
+      // Handle new display fields with defaults
+      displayMode: data.displayMode ?? 'user',
+      customName: data.customName ?? null,
+      customImageUrl: data.customImageUrl ?? null,
     } as GroupMember;
   });
 
@@ -277,11 +286,16 @@ export async function getMember(memberId: string): Promise<GroupMember | null> {
   if (!docSnap.exists()) return null;
 
   const data = docSnap.data();
+  const isCaptain = data.isCaptain ?? data.isCreator ?? false;
   return {
     ...data,
     id: docSnap.id,
+    isCaptain,
     invitedAt: convertTimestamp(data.invitedAt),
     respondedAt: data.respondedAt ? convertTimestamp(data.respondedAt) : null,
+    displayMode: data.displayMode ?? 'user',
+    customName: data.customName ?? null,
+    customImageUrl: data.customImageUrl ?? null,
   } as GroupMember;
 }
 
@@ -650,6 +664,10 @@ export function subscribeToMembers(
         isCaptain,
         invitedAt: convertTimestamp(data.invitedAt),
         respondedAt: data.respondedAt ? convertTimestamp(data.respondedAt) : null,
+        // Handle new display fields with defaults
+        displayMode: data.displayMode ?? 'user',
+        customName: data.customName ?? null,
+        customImageUrl: data.customImageUrl ?? null,
       } as GroupMember;
     });
     // Sort so captain is first
@@ -690,4 +708,126 @@ export async function uploadMemberImage(
   const downloadUrl = await getDownloadURL(storageRef);
 
   return downloadUrl;
+}
+
+// ============ CLAIM TOKEN OPERATIONS ============
+
+export async function createClaimToken(
+  groupId: string,
+  memberId: string,
+  createdBy: string,
+  email: string | null = null
+): Promise<ClaimToken> {
+  const tokenId = uuidv4();
+  const token = uuidv4(); // Generate unique claim token
+  const now = new Date();
+
+  const claimToken: ClaimToken = {
+    id: tokenId,
+    groupId,
+    memberId,
+    email,
+    token,
+    createdBy,
+    status: 'pending',
+    createdAt: now,
+    claimedAt: null,
+    claimedBy: null,
+  };
+
+  await setDoc(doc(claimTokensCollection, tokenId), {
+    ...claimToken,
+    createdAt: Timestamp.fromDate(now),
+  });
+
+  return claimToken;
+}
+
+export async function getClaimTokenByToken(token: string): Promise<ClaimToken | null> {
+  const q = query(claimTokensCollection, where('token', '==', token), where('status', '==', 'pending'));
+  const docs = await getDocs(q);
+
+  if (docs.empty) return null;
+
+  const docSnap = docs.docs[0];
+  const data = docSnap.data();
+  return {
+    ...data,
+    id: docSnap.id,
+    createdAt: convertTimestamp(data.createdAt),
+    claimedAt: data.claimedAt ? convertTimestamp(data.claimedAt) : null,
+  } as ClaimToken;
+}
+
+export async function getClaimTokensForMember(memberId: string): Promise<ClaimToken[]> {
+  const q = query(claimTokensCollection, where('memberId', '==', memberId));
+  const docs = await getDocs(q);
+
+  return docs.docs.map((docSnap) => {
+    const data = docSnap.data();
+    return {
+      ...data,
+      id: docSnap.id,
+      createdAt: convertTimestamp(data.createdAt),
+      claimedAt: data.claimedAt ? convertTimestamp(data.claimedAt) : null,
+    } as ClaimToken;
+  });
+}
+
+export async function claimProfile(
+  token: string,
+  clerkId: string,
+  name: string,
+  imageUrl: string | null
+): Promise<{ success: boolean; memberId?: string; groupId?: string; error?: string }> {
+  const claimToken = await getClaimTokenByToken(token);
+
+  if (!claimToken) {
+    return { success: false, error: 'Invalid or expired claim link' };
+  }
+
+  // Check if token is for a specific email
+  if (claimToken.email) {
+    // We can't verify email here since we don't have access to the user's email
+    // The frontend will need to handle this check
+  }
+
+  const member = await getMember(claimToken.memberId);
+  if (!member) {
+    return { success: false, error: 'Member profile not found' };
+  }
+
+  if (member.clerkId) {
+    return { success: false, error: 'This profile has already been claimed' };
+  }
+
+  const now = new Date();
+
+  // Update the member to link to the claiming user
+  await updateDoc(doc(membersCollection, claimToken.memberId), {
+    clerkId,
+    name,
+    imageUrl,
+    status: 'accepted',
+    respondedAt: Timestamp.fromDate(now),
+  });
+
+  // Mark the claim token as used
+  await updateDoc(doc(claimTokensCollection, claimToken.id), {
+    status: 'claimed',
+    claimedAt: Timestamp.fromDate(now),
+    claimedBy: clerkId,
+  });
+
+  return {
+    success: true,
+    memberId: claimToken.memberId,
+    groupId: claimToken.groupId,
+  };
+}
+
+export async function invalidateClaimToken(tokenId: string): Promise<void> {
+  await updateDoc(doc(claimTokensCollection, tokenId), {
+    status: 'expired',
+  });
 }

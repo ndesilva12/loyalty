@@ -14,6 +14,7 @@ import {
   AlertCircle,
   Settings,
   Anchor,
+  Settings2,
 } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Button from '@/components/ui/Button';
@@ -39,7 +40,10 @@ import {
   uploadMemberImage,
   updateMember,
   updateGroup,
+  removeMember,
+  createClaimToken,
 } from '@/lib/firestore';
+import Input from '@/components/ui/Input';
 
 type ViewMode = 'graph' | 'table' | 'rate';
 
@@ -59,7 +63,11 @@ export default function GroupPage() {
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [showClaimRequestsModal, setShowClaimRequestsModal] = useState(false);
   const [showMetricsModal, setShowMetricsModal] = useState(false);
+  const [showGroupSettingsModal, setShowGroupSettingsModal] = useState(false);
   const [editingMetrics, setEditingMetrics] = useState<Metric[]>([]);
+  const [editingGroupName, setEditingGroupName] = useState('');
+  const [editingGroupDescription, setEditingGroupDescription] = useState('');
+  const [savingGroupSettings, setSavingGroupSettings] = useState(false);
 
   // Graph state
   const [xMetricId, setXMetricId] = useState<string>('');
@@ -230,6 +238,66 @@ export default function GroupPage() {
     setClaimRequests((prev) => prev.filter((r) => r.id !== request.id));
   };
 
+  const handleOpenGroupSettings = () => {
+    if (group) {
+      setEditingGroupName(group.name);
+      setEditingGroupDescription(group.description || '');
+      setShowGroupSettingsModal(true);
+    }
+  };
+
+  const handleSaveGroupSettings = async () => {
+    if (!group) return;
+    setSavingGroupSettings(true);
+    try {
+      await updateGroup(groupId, {
+        name: editingGroupName.trim(),
+        description: editingGroupDescription.trim(),
+      });
+      setShowGroupSettingsModal(false);
+    } finally {
+      setSavingGroupSettings(false);
+    }
+  };
+
+  const handleRemoveMember = async (memberId: string) => {
+    if (!confirm('Are you sure you want to remove this member? This will also delete their ratings.')) {
+      return;
+    }
+    await removeMember(memberId);
+  };
+
+  const handleCreateClaimLink = async (memberId: string, email?: string) => {
+    if (!user) return null;
+    const claimToken = await createClaimToken(groupId, memberId, user.id, email || null);
+    return `${window.location.origin}/claim/${claimToken.token}`;
+  };
+
+  const handleCopyClaimLink = async (memberId: string) => {
+    const link = await handleCreateClaimLink(memberId);
+    if (link) {
+      await navigator.clipboard.writeText(link);
+      alert('Claim link copied to clipboard!');
+    }
+  };
+
+  const handleSendClaimInvite = async (memberId: string, email: string) => {
+    const link = await handleCreateClaimLink(memberId, email);
+    if (link) {
+      // For now, just copy the link. In the future, this could send an email
+      await navigator.clipboard.writeText(link);
+      alert(`Claim link for ${email} copied to clipboard! Send this link to them to claim their profile.`);
+    }
+  };
+
+  const handleToggleDisplayMode = async (memberId: string, mode: 'user' | 'custom') => {
+    await updateMember(memberId, { displayMode: mode });
+  };
+
+  const handleUpdateCustomDisplay = async (memberId: string, data: { customName?: string; customImageUrl?: string }) => {
+    await updateMember(memberId, data);
+  };
+
   // Get visible members for the graph
   const visibleMembers = members.filter((m) => m.visibleInGraph);
 
@@ -310,6 +378,10 @@ export default function GroupPage() {
               )}
               {isCaptain && (
                 <>
+                  <Button variant="outline" onClick={handleOpenGroupSettings}>
+                    <Settings2 className="w-4 h-4 mr-2" />
+                    Settings
+                  </Button>
                   <Button variant="outline" onClick={handleOpenMetricsModal}>
                     <Settings className="w-4 h-4 mr-2" />
                     Metrics
@@ -448,6 +520,11 @@ export default function GroupPage() {
               isCaptain={isCaptain}
               onEditMember={handleEditMember}
               onUploadMemberImage={handleUploadMemberImage}
+              onRemoveMember={handleRemoveMember}
+              onCopyClaimLink={handleCopyClaimLink}
+              onSendClaimInvite={handleSendClaimInvite}
+              onToggleDisplayMode={handleToggleDisplayMode}
+              onUpdateCustomDisplay={handleUpdateCustomDisplay}
             />
           </Card>
         )}
@@ -655,6 +732,45 @@ export default function GroupPage() {
           </Button>
           <Button onClick={handleSaveMetrics} className="flex-1">
             Save Metrics
+          </Button>
+        </div>
+      </Modal>
+
+      {/* Group Settings Modal */}
+      <Modal
+        isOpen={showGroupSettingsModal}
+        onClose={() => setShowGroupSettingsModal(false)}
+        title="Group Settings"
+      >
+        <div className="space-y-4">
+          <Input
+            label="Group Name"
+            id="group-name"
+            value={editingGroupName}
+            onChange={(e) => setEditingGroupName(e.target.value)}
+            placeholder="Enter group name"
+          />
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Description
+            </label>
+            <textarea
+              value={editingGroupDescription}
+              onChange={(e) => setEditingGroupDescription(e.target.value)}
+              placeholder="Describe what this group is for..."
+              rows={3}
+              className="w-full px-3 py-2 border rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-gray-400 dark:placeholder:text-gray-500"
+            />
+          </div>
+        </div>
+
+        <div className="flex gap-3 mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <Button variant="outline" onClick={() => setShowGroupSettingsModal(false)} className="flex-1">
+            Cancel
+          </Button>
+          <Button onClick={handleSaveGroupSettings} loading={savingGroupSettings} className="flex-1">
+            Save Settings
           </Button>
         </div>
       </Modal>

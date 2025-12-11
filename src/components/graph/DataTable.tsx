@@ -2,9 +2,10 @@
 
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { Eye, EyeOff, Anchor, Pencil, Check, X, Upload, Camera } from 'lucide-react';
-import { GroupMember, Metric, AggregatedScore, Rating } from '@/types';
+import { Eye, EyeOff, Anchor, Pencil, Check, X, Camera, Trash2, Link2, Mail, User, Settings } from 'lucide-react';
+import { GroupMember, Metric, AggregatedScore, Rating, MemberDisplayMode, getMemberDisplayName, getMemberDisplayImage } from '@/types';
 import Avatar from '@/components/ui/Avatar';
+import Button from '@/components/ui/Button';
 
 interface DataTableProps {
   members: GroupMember[];
@@ -21,6 +22,11 @@ interface DataTableProps {
   isCaptain?: boolean;
   onEditMember?: (memberId: string, data: { name: string; email: string; imageUrl?: string }) => Promise<void>;
   onUploadMemberImage?: (memberId: string, file: File) => Promise<void>;
+  onRemoveMember?: (memberId: string) => Promise<void>;
+  onCopyClaimLink?: (memberId: string) => Promise<void>;
+  onSendClaimInvite?: (memberId: string, email: string) => Promise<void>;
+  onToggleDisplayMode?: (memberId: string, mode: MemberDisplayMode) => Promise<void>;
+  onUpdateCustomDisplay?: (memberId: string, data: { customName?: string; customImageUrl?: string }) => Promise<void>;
 }
 
 export default function DataTable({
@@ -38,6 +44,11 @@ export default function DataTable({
   isCaptain = false,
   onEditMember,
   onUploadMemberImage,
+  onRemoveMember,
+  onCopyClaimLink,
+  onSendClaimInvite,
+  onToggleDisplayMode,
+  onUpdateCustomDisplay,
 }: DataTableProps) {
   const [editingCell, setEditingCell] = useState<{ memberId: string; metricId: string } | null>(null);
   const [editValue, setEditValue] = useState<number>(50);
@@ -45,7 +56,12 @@ export default function DataTable({
   const [editingMember, setEditingMember] = useState<string | null>(null);
   const [editMemberData, setEditMemberData] = useState<{ name: string; email: string }>({ name: '', email: '' });
   const [uploadingImage, setUploadingImage] = useState<string | null>(null);
+  const [showMemberActions, setShowMemberActions] = useState<string | null>(null);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [editingDisplaySettings, setEditingDisplaySettings] = useState<string | null>(null);
+  const [customNameInput, setCustomNameInput] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const customImageInputRef = useRef<HTMLInputElement>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const activeMembers = useMemo(
@@ -210,6 +226,11 @@ export default function DataTable({
                 )}
               </th>
             ))}
+            {isCaptain && (
+              <th className="text-center py-3 px-4 font-semibold text-gray-900 dark:text-white w-24">
+                Actions
+              </th>
+            )}
           </tr>
         </thead>
         <tbody>
@@ -286,8 +307,8 @@ export default function DataTable({
                         }}
                       >
                         <Avatar
-                          src={member.imageUrl || member.placeholderImageUrl}
-                          alt={member.name}
+                          src={getMemberDisplayImage(member)}
+                          alt={getMemberDisplayName(member)}
                           size="sm"
                         />
                       </Link>
@@ -323,10 +344,15 @@ export default function DataTable({
                     >
                       <div>
                         <div className="font-medium text-gray-900 dark:text-white flex items-center gap-1.5">
-                          {member.name}
+                          {getMemberDisplayName(member)}
                           {member.isCaptain && (
                             <span title="Group Captain">
                               <Anchor className="w-3.5 h-3.5 text-blue-500" />
+                            </span>
+                          )}
+                          {member.displayMode === 'custom' && (
+                            <span title="Custom display" className="text-xs text-purple-500">
+                              <Pencil className="w-3 h-3" />
                             </span>
                           )}
                         </div>
@@ -404,6 +430,120 @@ export default function DataTable({
                   </td>
                 );
               })}
+              {/* Actions cell for captain */}
+              {isCaptain && (
+                <td className="py-3 px-4 text-center">
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowMemberActions(showMemberActions === member.id ? null : member.id)}
+                      className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                      title="Member actions"
+                    >
+                      <Settings className="w-4 h-4" />
+                    </button>
+
+                    {/* Actions dropdown */}
+                    {showMemberActions === member.id && (
+                      <div className="absolute right-0 top-full mt-1 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-20">
+                        <div className="p-2 space-y-1">
+                          {/* Display mode toggle for claimed members */}
+                          {member.clerkId && (
+                            <div className="p-2 border-b border-gray-200 dark:border-gray-700">
+                              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Display Mode</p>
+                              <div className="flex gap-1">
+                                <button
+                                  onClick={() => {
+                                    onToggleDisplayMode?.(member.id, 'user');
+                                    setShowMemberActions(null);
+                                  }}
+                                  className={`flex-1 px-2 py-1 text-xs rounded ${
+                                    member.displayMode === 'user'
+                                      ? 'bg-blue-500 text-white'
+                                      : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                                  }`}
+                                >
+                                  <User className="w-3 h-3 inline mr-1" />
+                                  User
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    onToggleDisplayMode?.(member.id, 'custom');
+                                    setShowMemberActions(null);
+                                  }}
+                                  className={`flex-1 px-2 py-1 text-xs rounded ${
+                                    member.displayMode === 'custom'
+                                      ? 'bg-blue-500 text-white'
+                                      : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                                  }`}
+                                >
+                                  <Pencil className="w-3 h-3 inline mr-1" />
+                                  Custom
+                                </button>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Claim invite options for placeholder members */}
+                          {member.status === 'placeholder' && !member.clerkId && (
+                            <>
+                              <button
+                                onClick={() => {
+                                  onCopyClaimLink?.(member.id);
+                                  setShowMemberActions(null);
+                                }}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                              >
+                                <Link2 className="w-4 h-4" />
+                                Copy Claim Link
+                              </button>
+                              <div className="px-3 py-2">
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Send claim invite to:</p>
+                                <div className="flex gap-1">
+                                  <input
+                                    type="email"
+                                    value={inviteEmail}
+                                    onChange={(e) => setInviteEmail(e.target.value)}
+                                    placeholder="email@example.com"
+                                    className="flex-1 px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-900"
+                                    onClick={(e) => e.stopPropagation()}
+                                  />
+                                  <button
+                                    onClick={() => {
+                                      if (inviteEmail) {
+                                        onSendClaimInvite?.(member.id, inviteEmail);
+                                        setInviteEmail('');
+                                        setShowMemberActions(null);
+                                      }
+                                    }}
+                                    className="p-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+                                    disabled={!inviteEmail}
+                                  >
+                                    <Mail className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              </div>
+                            </>
+                          )}
+
+                          {/* Remove member (not for captain) */}
+                          {!member.isCaptain && (
+                            <button
+                              onClick={() => {
+                                onRemoveMember?.(member.id);
+                                setShowMemberActions(null);
+                              }}
+                              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              Remove Member
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </td>
+              )}
             </tr>
           ))}
         </tbody>

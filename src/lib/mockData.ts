@@ -36,6 +36,9 @@ export const mockMembers: GroupMember[] = [
     isCaptain: true,
     invitedAt: new Date('2024-01-15'),
     respondedAt: new Date('2024-01-15'),
+    displayMode: 'user',
+    customName: null,
+    customImageUrl: null,
   },
   {
     id: 'member-2',
@@ -51,6 +54,9 @@ export const mockMembers: GroupMember[] = [
     isCaptain: false,
     invitedAt: new Date('2024-01-16'),
     respondedAt: new Date('2024-01-17'),
+    displayMode: 'user',
+    customName: null,
+    customImageUrl: null,
   },
   {
     id: 'member-3',
@@ -66,6 +72,9 @@ export const mockMembers: GroupMember[] = [
     isCaptain: false,
     invitedAt: new Date('2024-01-16'),
     respondedAt: new Date('2024-01-18'),
+    displayMode: 'user',
+    customName: null,
+    customImageUrl: null,
   },
   {
     id: 'member-4',
@@ -81,6 +90,9 @@ export const mockMembers: GroupMember[] = [
     isCaptain: false,
     invitedAt: new Date('2024-01-17'),
     respondedAt: new Date('2024-01-19'),
+    displayMode: 'user',
+    customName: null,
+    customImageUrl: null,
   },
   {
     id: 'member-5',
@@ -96,6 +108,9 @@ export const mockMembers: GroupMember[] = [
     isCaptain: false,
     invitedAt: new Date('2024-01-18'),
     respondedAt: new Date('2024-01-20'),
+    displayMode: 'user',
+    customName: null,
+    customImageUrl: null,
   },
   {
     id: 'member-6',
@@ -111,6 +126,9 @@ export const mockMembers: GroupMember[] = [
     isCaptain: false,
     invitedAt: new Date('2024-01-19'),
     respondedAt: new Date('2024-01-21'),
+    displayMode: 'user',
+    customName: null,
+    customImageUrl: null,
   },
   {
     id: 'member-7',
@@ -126,6 +144,9 @@ export const mockMembers: GroupMember[] = [
     isCaptain: false,
     invitedAt: new Date('2024-02-01'),
     respondedAt: null,
+    displayMode: 'user',
+    customName: null,
+    customImageUrl: null,
   },
 ];
 
