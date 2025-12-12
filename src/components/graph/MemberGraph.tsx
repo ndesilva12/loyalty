@@ -293,6 +293,24 @@ export default function MemberGraph({
         </span>
       </div>
 
+      {/* Mobile Y-axis label - positioned at 75% mark (25% from top) */}
+      {yMetricId && (
+        <div className="md:hidden absolute left-1 top-[25%] -translate-y-1/2 z-10">
+          <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-white/90 dark:bg-gray-800/90 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600 shadow-sm whitespace-nowrap">
+            {yMetric?.name || 'Y'}
+          </span>
+        </div>
+      )}
+
+      {/* Mobile X-axis label - positioned at 75% mark */}
+      {xMetricId && (
+        <div className="md:hidden absolute bottom-3 left-[75%] -translate-x-1/2 z-10">
+          <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-white/90 dark:bg-gray-800/90 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600 shadow-sm whitespace-nowrap">
+            {xMetric?.name || 'X'}
+          </span>
+        </div>
+      )}
+
       {/* Grid lines */}
       <svg className="absolute inset-0 w-full h-full" preserveAspectRatio="none">
         {/* Vertical grid lines */}
