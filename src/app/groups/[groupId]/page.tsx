@@ -16,6 +16,7 @@ import {
   Anchor,
   Settings2,
   Lock,
+  MoreVertical,
 } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Button from '@/components/ui/Button';
@@ -72,6 +73,7 @@ export default function GroupPage() {
   const [editingLockedXMetricId, setEditingLockedXMetricId] = useState<string | null>(null);
   const [editingCaptainControlEnabled, setEditingCaptainControlEnabled] = useState(false);
   const [savingGroupSettings, setSavingGroupSettings] = useState(false);
+  const [showMobileCaptainMenu, setShowMobileCaptainMenu] = useState(false);
 
   // Graph state
   const [xMetricId, setXMetricId] = useState<string>('');
@@ -363,16 +365,86 @@ export default function GroupPage() {
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
       <Header />
 
-      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
+      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
         {/* Back link and header */}
-        <div className="mb-6">
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-4"
-          >
-            <ArrowLeft className="w-4 h-4 mr-1" />
-            Back to Dashboard
-          </Link>
+        <div className="mb-4 sm:mb-6">
+          {/* Back link row with mobile captain menu */}
+          <div className="flex items-center justify-between mb-4">
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+            >
+              <ArrowLeft className="w-4 h-4 mr-1" />
+              Back to Dashboard
+            </Link>
+
+            {/* Mobile captain menu (three-dot) */}
+            {isCaptain && (
+              <div className="relative sm:hidden">
+                <button
+                  onClick={() => setShowMobileCaptainMenu(!showMobileCaptainMenu)}
+                  className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
+                >
+                  <MoreVertical className="w-5 h-5" />
+                  {claimRequests.length > 0 && (
+                    <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
+                  )}
+                </button>
+
+                {showMobileCaptainMenu && (
+                  <div className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-30">
+                    <div className="py-1">
+                      {claimRequests.length > 0 && (
+                        <button
+                          onClick={() => {
+                            setShowClaimRequestsModal(true);
+                            setShowMobileCaptainMenu(false);
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-2 text-sm text-left hover:bg-gray-100 dark:hover:bg-gray-700"
+                        >
+                          <Users className="w-4 h-4" />
+                          Claims
+                          <span className="ml-auto bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">
+                            {claimRequests.length}
+                          </span>
+                        </button>
+                      )}
+                      <button
+                        onClick={() => {
+                          handleOpenGroupSettings();
+                          setShowMobileCaptainMenu(false);
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-2 text-sm text-left hover:bg-gray-100 dark:hover:bg-gray-700"
+                      >
+                        <Settings2 className="w-4 h-4" />
+                        Settings
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleOpenMetricsModal();
+                          setShowMobileCaptainMenu(false);
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-2 text-sm text-left hover:bg-gray-100 dark:hover:bg-gray-700"
+                      >
+                        <Settings className="w-4 h-4" />
+                        Metrics
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowAddMemberModal(true);
+                          setShowMobileCaptainMenu(false);
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-2 text-sm text-left hover:bg-gray-100 dark:hover:bg-gray-700"
+                      >
+                        <UserPlus className="w-4 h-4" />
+                        Add Member
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
@@ -380,11 +452,12 @@ export default function GroupPage() {
                 {group.name}
               </h1>
               {group.description && (
-                <p className="text-gray-600 dark:text-gray-400 mt-1">{group.description}</p>
+                <p className="text-gray-600 dark:text-gray-400 mt-1 hidden sm:block">{group.description}</p>
               )}
             </div>
 
-            <div className="flex items-center gap-2">
+            {/* Desktop captain buttons */}
+            <div className="hidden sm:flex items-center gap-2">
               {claimRequests.length > 0 && isCaptain && (
                 <Button
                   variant="outline"
@@ -419,42 +492,45 @@ export default function GroupPage() {
         </div>
 
         {/* Unified control bar */}
-        <Card className="p-3 mb-6">
-          <div className="flex flex-wrap items-center gap-3">
-            {/* View mode buttons */}
-            <div className="flex gap-1 border-r border-gray-200 dark:border-gray-700 pr-3">
+        <Card className="p-2 sm:p-3 mb-4 sm:mb-6">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2 sm:gap-3">
+            {/* View mode buttons - full width on mobile */}
+            <div className="flex w-full sm:w-auto gap-1 sm:border-r border-gray-200 dark:border-gray-700 sm:pr-3">
               <Button
                 variant={viewMode === 'graph' ? 'primary' : 'ghost'}
                 onClick={() => setViewMode('graph')}
                 size="sm"
+                className="flex-1 sm:flex-initial justify-center"
               >
-                <BarChart3 className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">Scale</span>
+                <BarChart3 className="w-4 h-4 mr-1 sm:mr-2" />
+                Scale
               </Button>
               <Button
                 variant={viewMode === 'table' ? 'primary' : 'ghost'}
                 onClick={() => setViewMode('table')}
                 size="sm"
+                className="flex-1 sm:flex-initial justify-center"
               >
-                <Table className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">Data</span>
+                <Table className="w-4 h-4 mr-1 sm:mr-2" />
+                Data
               </Button>
               {canRate && (
                 <Button
                   variant={viewMode === 'rate' ? 'primary' : 'ghost'}
                   onClick={() => setViewMode('rate')}
                   size="sm"
+                  className="flex-1 sm:flex-initial justify-center"
                 >
-                  <SlidersHorizontal className="w-4 h-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Rate</span>
+                  <SlidersHorizontal className="w-4 h-4 mr-1 sm:mr-2" />
+                  Rate
                 </Button>
               )}
             </div>
 
-            {/* Metric selectors - only show for graph view */}
+            {/* Metric selectors - only show for graph view, centered row on mobile */}
             {viewMode === 'graph' && group.metrics.length > 0 && (
-              <>
-                <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center gap-3 w-full sm:w-auto">
+                <div className="flex items-center gap-1.5">
                   <label className="text-xs font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">
                     Y:
                   </label>
@@ -471,7 +547,7 @@ export default function GroupPage() {
                   </select>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   <label className="text-xs font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">
                     X:
                   </label>
@@ -487,16 +563,16 @@ export default function GroupPage() {
                     ))}
                   </select>
                 </div>
-              </>
+              </div>
             )}
           </div>
         </Card>
 
         {/* Content */}
         {viewMode === 'graph' && (
-          <Card className="p-4 sm:p-6">
-            {/* Graph Title */}
-            <h2 className="text-center text-2xl md:text-3xl font-bold mb-6">
+          <Card className="p-2 sm:p-6 -mx-4 sm:mx-0 rounded-none sm:rounded-xl">
+            {/* Graph Title - hidden on mobile since axis labels are inline */}
+            <h2 className="hidden sm:block text-center text-2xl md:text-3xl font-bold mb-3">
               <span className="bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 dark:from-blue-400 dark:via-blue-300 dark:to-cyan-400 bg-clip-text text-transparent">
                 {group.metrics.find((m) => m.id === yMetricId)?.name || 'Y Metric'}
               </span>
@@ -505,8 +581,8 @@ export default function GroupPage() {
                 {group.metrics.find((m) => m.id === xMetricId)?.name || 'X Metric'}
               </span>
             </h2>
-            <div className="w-full" style={{ paddingLeft: '3rem', paddingBottom: '2rem' }}>
-              <div className="w-full aspect-[4/3] lg:aspect-[16/10] max-h-[70vh]">
+            <div className="w-full sm:pl-12 sm:pb-8">
+              <div className="w-full aspect-square sm:aspect-[4/3] lg:aspect-[16/10] max-h-[70vh]">
                 <MemberGraph
                   members={visibleMembers}
                   metrics={group.metrics}

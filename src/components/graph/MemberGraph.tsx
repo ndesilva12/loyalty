@@ -223,8 +223,8 @@ export default function MemberGraph({
       ref={containerRef}
       className="relative w-full h-full min-h-[400px] bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700"
     >
-      {/* Y-axis label */}
-      <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full pr-2 md:pr-4">
+      {/* Y-axis label - hidden on mobile, shown on larger screens */}
+      <div className="hidden md:block absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full pr-2 md:pr-4">
         <div className="transform -rotate-90 whitespace-nowrap">
           <span className="px-3 py-1.5 rounded-full text-sm md:text-base font-semibold bg-gradient-to-r from-blue-500/10 to-cyan-500/10 dark:from-blue-400/20 dark:to-cyan-400/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
             {yMetric?.name || 'Y Axis'}
@@ -232,8 +232,8 @@ export default function MemberGraph({
         </div>
       </div>
 
-      {/* X-axis label */}
-      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full pt-2 md:pt-4">
+      {/* X-axis label - hidden on mobile, shown on larger screens */}
+      <div className="hidden md:block absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full pt-2 md:pt-4">
         <span className="px-3 py-1.5 rounded-full text-sm md:text-base font-semibold bg-gradient-to-r from-emerald-500/10 to-teal-500/10 dark:from-emerald-400/20 dark:to-teal-400/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
           {xMetric?.name || 'X Axis'}
         </span>
@@ -269,32 +269,64 @@ export default function MemberGraph({
         ))}
       </svg>
 
-      {/* Y-axis scale */}
+      {/* Y-axis scale with inline label on mobile */}
       <div className="absolute left-1 md:left-2 top-0 bottom-0 flex flex-col justify-between py-2 text-xs text-gray-500 dark:text-gray-400">
+        {/* Mobile Y-axis label inline */}
+        <span className="md:hidden text-[10px] font-semibold text-blue-600 dark:text-blue-400 truncate max-w-[3rem]">
+          {yMetric?.name || 'Y'}
+        </span>
         {(() => {
           const min = yMetric?.minValue ?? 0;
           const max = yMetric?.maxValue ?? 100;
           const range = max - min;
           const prefix = yMetric?.prefix ?? '';
           const suffix = yMetric?.suffix ?? '';
+          // Show fewer values on mobile (top, middle, bottom)
+          return [100, 50, 0].map((pct) => (
+            <span key={pct} className="md:hidden">{prefix}{Math.round(min + (range * pct / 100))}{suffix}</span>
+          ));
+        })()}
+        {(() => {
+          const min = yMetric?.minValue ?? 0;
+          const max = yMetric?.maxValue ?? 100;
+          const range = max - min;
+          const prefix = yMetric?.prefix ?? '';
+          const suffix = yMetric?.suffix ?? '';
+          // Show all values on desktop
           return [100, 75, 50, 25, 0].map((pct) => (
-            <span key={pct}>{prefix}{Math.round(min + (range * pct / 100))}{suffix}</span>
+            <span key={pct} className="hidden md:block">{prefix}{Math.round(min + (range * pct / 100))}{suffix}</span>
           ));
         })()}
       </div>
 
-      {/* X-axis scale */}
-      <div className="absolute left-0 right-0 bottom-1 md:bottom-2 flex justify-between px-2 text-xs text-gray-500 dark:text-gray-400">
+      {/* X-axis scale with inline label on mobile */}
+      <div className="absolute left-0 right-0 bottom-1 md:bottom-2 flex justify-between items-center px-2 text-xs text-gray-500 dark:text-gray-400">
         {(() => {
           const min = xMetric?.minValue ?? 0;
           const max = xMetric?.maxValue ?? 100;
           const range = max - min;
           const prefix = xMetric?.prefix ?? '';
           const suffix = xMetric?.suffix ?? '';
-          return [0, 25, 50, 75, 100].map((pct) => (
-            <span key={pct}>{prefix}{Math.round(min + (range * pct / 100))}{suffix}</span>
+          // Show fewer values on mobile
+          return [0, 50, 100].map((pct) => (
+            <span key={pct} className="md:hidden">{prefix}{Math.round(min + (range * pct / 100))}{suffix}</span>
           ));
         })()}
+        {(() => {
+          const min = xMetric?.minValue ?? 0;
+          const max = xMetric?.maxValue ?? 100;
+          const range = max - min;
+          const prefix = xMetric?.prefix ?? '';
+          const suffix = xMetric?.suffix ?? '';
+          // Show all values on desktop
+          return [0, 25, 50, 75, 100].map((pct) => (
+            <span key={pct} className="hidden md:block">{prefix}{Math.round(min + (range * pct / 100))}{suffix}</span>
+          ));
+        })()}
+        {/* Mobile X-axis label inline */}
+        <span className="md:hidden text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 truncate max-w-[3rem]">
+          {xMetric?.name || 'X'}
+        </span>
       </div>
 
       {/* Plotted members */}
