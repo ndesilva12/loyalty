@@ -595,14 +595,32 @@ export default function GroupPage() {
         {viewMode === 'graph' && (
           <Card className="p-2 sm:p-6 -mx-4 sm:mx-0 rounded-none sm:rounded-xl">
             {/* Graph Title - hidden on mobile since axis labels are inline */}
-            <h2 className="hidden sm:block text-center text-2xl md:text-3xl font-bold mb-3">
-              <span className={yMetricId ? 'bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 dark:from-blue-400 dark:via-blue-300 dark:to-cyan-400 bg-clip-text text-transparent' : 'text-gray-400 dark:text-gray-500'}>
-                {group.metrics.find((m) => m.id === yMetricId)?.name || 'None'}
-              </span>
-              <span className="mx-3 text-gray-300 dark:text-gray-600 font-normal">×</span>
-              <span className={xMetricId ? 'bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 dark:from-emerald-400 dark:via-emerald-300 dark:to-teal-400 bg-clip-text text-transparent' : 'text-gray-400 dark:text-gray-500'}>
-                {group.metrics.find((m) => m.id === xMetricId)?.name || 'None'}
-              </span>
+            <h2 className="hidden sm:block text-center text-3xl md:text-4xl font-extrabold mb-4">
+              {yMetricId && xMetricId ? (
+                // Both axes selected
+                <>
+                  <span className="bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 dark:from-blue-400 dark:via-blue-300 dark:to-cyan-400 bg-clip-text text-transparent">
+                    {group.metrics.find((m) => m.id === yMetricId)?.name}
+                  </span>
+                  <span className="mx-3 text-gray-300 dark:text-gray-600 font-normal">×</span>
+                  <span className="bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 dark:from-emerald-400 dark:via-emerald-300 dark:to-teal-400 bg-clip-text text-transparent">
+                    {group.metrics.find((m) => m.id === xMetricId)?.name}
+                  </span>
+                </>
+              ) : yMetricId ? (
+                // Only Y axis selected
+                <span className="bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 dark:from-blue-400 dark:via-blue-300 dark:to-cyan-400 bg-clip-text text-transparent">
+                  {group.metrics.find((m) => m.id === yMetricId)?.name}
+                </span>
+              ) : xMetricId ? (
+                // Only X axis selected
+                <span className="bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 dark:from-emerald-400 dark:via-emerald-300 dark:to-teal-400 bg-clip-text text-transparent">
+                  {group.metrics.find((m) => m.id === xMetricId)?.name}
+                </span>
+              ) : (
+                // Neither axis selected
+                <span className="text-gray-400 dark:text-gray-500">Members</span>
+              )}
             </h2>
             <div className="w-full sm:pl-12 sm:pb-8">
               <div className="w-full aspect-square sm:aspect-[4/3] lg:aspect-[16/10] max-h-[70vh]">
