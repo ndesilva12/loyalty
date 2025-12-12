@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { Eye, EyeOff, Anchor, Pencil, Check, X, Camera, Trash2, Link2, Mail, User, Settings, Users } from 'lucide-react';
+import { Eye, EyeOff, Anchor, Pencil, Check, X, Camera, Trash2, Link2, Mail, User, Settings, Users, ChevronUp, ChevronDown } from 'lucide-react';
 import { GroupMember, Metric, AggregatedScore, Rating, MemberDisplayMode, MemberRatingMode, getMemberDisplayName, getMemberDisplayImage } from '@/types';
 import Avatar from '@/components/ui/Avatar';
 import Button from '@/components/ui/Button';
@@ -67,15 +67,31 @@ export default function DataTable({
   const [editingDisplaySettings, setEditingDisplaySettings] = useState<string | null>(null);
   const [customNameInput, setCustomNameInput] = useState('');
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null);
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const customImageInputRef = useRef<HTMLInputElement>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const actionButtonRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
-  const activeMembers = useMemo(
-    () => members.filter((m) => m.status === 'accepted' || m.status === 'placeholder'),
-    [members]
-  );
+  const activeMembers = useMemo(() => {
+    const filtered = members.filter((m) => m.status === 'accepted' || m.status === 'placeholder');
+
+    if (!sortColumn) return filtered;
+
+    return [...filtered].sort((a, b) => {
+      if (sortColumn === 'name') {
+        const nameA = getMemberDisplayName(a).toLowerCase();
+        const nameB = getMemberDisplayName(b).toLowerCase();
+        return sortDirection === 'asc' ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
+      }
+
+      // Sort by metric score
+      const scoreA = scores.find((s) => s.memberId === a.id && s.metricId === sortColumn)?.averageValue ?? 0;
+      const scoreB = scores.find((s) => s.memberId === b.id && s.metricId === sortColumn)?.averageValue ?? 0;
+      return sortDirection === 'asc' ? scoreA - scoreB : scoreB - scoreA;
+    });
+  }, [members, sortColumn, sortDirection, scores]);
 
   const getScore = (memberId: string, metricId: string): number => {
     const score = scores.find(
@@ -99,11 +115,26 @@ export default function DataTable({
     return rating?.value ?? null;
   };
 
-  const getScoreColor = (value: number) => {
-    if (value >= 75) return 'text-green-600 dark:text-green-400';
-    if (value >= 50) return 'text-lime-600 dark:text-lime-400';
-    if (value >= 25) return 'text-yellow-600 dark:text-yellow-400';
+  // Normalize score to 0-100 based on metric's min/max range
+  const getScoreColor = (value: number, metric?: Metric) => {
+    const min = metric?.minValue ?? 0;
+    const max = metric?.maxValue ?? 100;
+    const range = max - min;
+    const normalizedValue = range > 0 ? ((value - min) / range) * 100 : 50;
+
+    if (normalizedValue >= 75) return 'text-green-600 dark:text-green-400';
+    if (normalizedValue >= 50) return 'text-yellow-500 dark:text-yellow-400';
+    if (normalizedValue >= 25) return 'text-orange-500 dark:text-orange-400';
     return 'text-red-500 dark:text-red-400';
+  };
+
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'desc' ? 'asc' : 'desc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('desc');
+    }
   };
 
   const handleStartEdit = (memberId: string, metricId: string) => {
@@ -289,16 +320,30 @@ export default function DataTable({
                 <Settings className="w-4 h-4 mx-auto text-gray-400" />
               </th>
             )}
-            <th className={`text-left py-2 sm:py-3 px-2 sm:px-4 font-semibold text-gray-900 dark:text-white ${isCaptain ? '' : 'sticky left-0 bg-white dark:bg-gray-900 z-10'}`}>
-              Item
+            <th
+              className={`text-left py-2 sm:py-3 px-2 sm:px-4 font-semibold text-gray-900 dark:text-white cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${isCaptain ? '' : 'sticky left-0 bg-white dark:bg-gray-900 z-10'}`}
+              onClick={() => handleSort('name')}
+            >
+              <div className="flex items-center gap-1">
+                <span>Item</span>
+                {sortColumn === 'name' && (
+                  sortDirection === 'desc' ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />
+                )}
+              </div>
             </th>
             {metrics.map((metric) => (
               <th
                 key={metric.id}
-                className="text-center py-2 sm:py-3 px-2 sm:px-4 font-semibold text-gray-900 dark:text-white min-w-[80px] sm:min-w-[120px]"
+                className="text-center py-2 sm:py-3 px-2 sm:px-4 font-semibold text-gray-900 dark:text-white min-w-[80px] sm:min-w-[120px] cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                 title={metric.description}
+                onClick={() => handleSort(metric.id)}
               >
-                <div className="text-xs sm:text-sm">{metric.name}</div>
+                <div className="flex items-center justify-center gap-1">
+                  <span className="text-xs sm:text-sm">{metric.name}</span>
+                  {sortColumn === metric.id && (
+                    sortDirection === 'desc' ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />
+                  )}
+                </div>
                 {canRate && (
                   <div className="text-xs font-normal text-gray-500 dark:text-gray-400 hidden sm:block">
                     (click to rate)
@@ -502,7 +547,7 @@ export default function DataTable({
                         className={`${canRate && onSubmitRating ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg p-2 -m-2 transition-colors' : ''}`}
                         onClick={() => canRate && onSubmitRating && handleStartEdit(member.id, metric.id)}
                       >
-                        <div className={`font-semibold ${getScoreColor(score)}`}>
+                        <div className={`font-semibold ${getScoreColor(score, metric)}`}>
                           {metric.prefix}{score.toFixed(1)}{metric.suffix}
                         </div>
                         <div className="text-xs text-gray-500 dark:text-gray-400">

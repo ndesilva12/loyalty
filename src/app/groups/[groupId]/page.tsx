@@ -546,22 +546,29 @@ export default function GroupPage() {
 
         {/* Graph Title with Y/X Dropdown Selectors - shown when in graph mode */}
         {viewMode === 'graph' && group.metrics.length > 0 && (
-          <div className="text-center mb-2 sm:mb-3">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-gray-800 dark:text-white inline-flex items-center justify-center flex-wrap gap-x-2">
+          <div className="text-center mb-0">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold inline-flex items-center justify-center flex-wrap gap-x-2">
               {/* Y Axis Selector */}
               <div className="relative inline-block">
                 <button
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     setShowYAxisDropdown(!showYAxisDropdown);
                     setShowXAxisDropdown(false);
                   }}
                   disabled={isYAxisLocked}
                   className={`inline-flex items-center gap-1 hover:opacity-80 transition-opacity disabled:opacity-50 ${
-                    yMetricId ? 'underline decoration-2 underline-offset-4 decoration-lime-500' : ''
+                    yMetricId ? 'underline decoration-2 underline-offset-4 decoration-lime-500/70' : ''
                   }`}
                 >
-                  <span>{yMetricId ? group.metrics.find((m) => m.id === yMetricId)?.name : 'Y Axis'}</span>
-                  <ChevronDown className={`w-4 h-4 sm:w-5 sm:h-5 transition-transform ${showYAxisDropdown ? 'rotate-180' : ''}`} />
+                  {yMetricId ? (
+                    <span className="bg-gradient-to-r from-red-500 via-orange-500 via-yellow-500 via-lime-500 to-green-500 bg-clip-text text-transparent">
+                      {group.metrics.find((m) => m.id === yMetricId)?.name}
+                    </span>
+                  ) : (
+                    <span className="text-gray-400 dark:text-gray-500">Y</span>
+                  )}
+                  <ChevronDown className={`w-4 h-4 sm:w-5 sm:h-5 transition-transform text-gray-400 ${showYAxisDropdown ? 'rotate-180' : ''}`} />
                 </button>
                 {showYAxisDropdown && (
                   <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50 py-1">
@@ -589,17 +596,24 @@ export default function GroupPage() {
               {/* X Axis Selector */}
               <div className="relative inline-block">
                 <button
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     setShowXAxisDropdown(!showXAxisDropdown);
                     setShowYAxisDropdown(false);
                   }}
                   disabled={isXAxisLocked}
                   className={`inline-flex items-center gap-1 hover:opacity-80 transition-opacity disabled:opacity-50 ${
-                    xMetricId ? 'underline decoration-2 underline-offset-4 decoration-lime-500' : ''
+                    xMetricId ? 'underline decoration-2 underline-offset-4 decoration-lime-500/70' : ''
                   }`}
                 >
-                  <span>{xMetricId ? group.metrics.find((m) => m.id === xMetricId)?.name : 'X Axis'}</span>
-                  <ChevronDown className={`w-4 h-4 sm:w-5 sm:h-5 transition-transform ${showXAxisDropdown ? 'rotate-180' : ''}`} />
+                  {xMetricId ? (
+                    <span className="bg-gradient-to-r from-red-500 via-orange-500 via-yellow-500 via-lime-500 to-green-500 bg-clip-text text-transparent">
+                      {group.metrics.find((m) => m.id === xMetricId)?.name}
+                    </span>
+                  ) : (
+                    <span className="text-gray-400 dark:text-gray-500">X</span>
+                  )}
+                  <ChevronDown className={`w-4 h-4 sm:w-5 sm:h-5 transition-transform text-gray-400 ${showXAxisDropdown ? 'rotate-180' : ''}`} />
                 </button>
                 {showXAxisDropdown && (
                   <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 z-50 py-1">
@@ -625,8 +639,8 @@ export default function GroupPage() {
           </div>
         )}
 
-        {/* Control bar tabs - attached to content below */}
-        <div className="bg-white dark:bg-gray-900 rounded-t-xl sm:rounded-t-xl border-x border-t border-gray-200 dark:border-gray-700 -mx-4 sm:mx-0">
+        {/* Control bar tabs - flush with content, no shadow on mobile */}
+        <div className="bg-white dark:bg-gray-900 border-x border-t border-gray-200 dark:border-gray-700 -mx-4 sm:mx-0 sm:rounded-t-xl">
           <div className="flex w-full">
             <button
               onClick={() => setViewMode('graph')}
