@@ -20,9 +20,9 @@ export default function Header() {
             <Image
               src="/scale.png"
               alt="Scale"
-              width={120}
-              height={32}
-              className="h-8 w-auto"
+              width={180}
+              height={48}
+              className="h-12 w-auto"
               priority
             />
           </Link>

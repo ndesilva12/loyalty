@@ -353,7 +353,7 @@ export default function GroupPage() {
       <div className="min-h-screen flex flex-col">
         <Header />
         <div className="flex-1 flex items-center justify-center">
-          <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full" />
+          <div className="animate-spin w-8 h-8 border-4 border-red-800 border-t-transparent rounded-full" />
         </div>
       </div>
     );
@@ -569,7 +569,7 @@ export default function GroupPage() {
                     value={yMetricId}
                     onChange={(e) => setYMetricId(e.target.value)}
                     disabled={isYAxisLocked}
-                    className="flex-1 text-base px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                    className="flex-1 text-base px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-red-800 disabled:opacity-50"
                   >
                     <option value="">None</option>
                     {metricOptions.map((opt) => (
@@ -588,7 +588,7 @@ export default function GroupPage() {
                     value={xMetricId}
                     onChange={(e) => setXMetricId(e.target.value)}
                     disabled={isXAxisLocked}
-                    className="flex-1 text-base px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                    className="flex-1 text-base px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-red-800 disabled:opacity-50"
                   >
                     <option value="">None</option>
                     {metricOptions.map((opt) => (
@@ -645,7 +645,7 @@ export default function GroupPage() {
                 {yMetricId && xMetricId ? (
                   // Both axes selected
                   <>
-                    <span className="bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 dark:from-blue-400 dark:via-blue-300 dark:to-cyan-400 bg-clip-text text-transparent">
+                    <span className="bg-gradient-to-r from-red-800 via-red-800 to-red-600 dark:from-red-400 dark:via-red-300 dark:to-red-500 bg-clip-text text-transparent">
                       {group.metrics.find((m) => m.id === yMetricId)?.name}
                     </span>
                     <span className="mx-3 text-gray-300 dark:text-gray-600 font-normal">×</span>
@@ -655,7 +655,7 @@ export default function GroupPage() {
                   </>
                 ) : yMetricId ? (
                   // Only Y axis selected
-                  <span className="bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 dark:from-blue-400 dark:via-blue-300 dark:to-cyan-400 bg-clip-text text-transparent">
+                  <span className="bg-gradient-to-r from-red-800 via-red-800 to-red-600 dark:from-red-400 dark:via-red-300 dark:to-red-500 bg-clip-text text-transparent">
                     {group.metrics.find((m) => m.id === yMetricId)?.name}
                   </span>
                 ) : xMetricId ? (
@@ -965,17 +965,17 @@ export default function GroupPage() {
 
           {/* Default Axis Selection */}
           {editingMetrics.length > 0 && (
-            <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-              <p className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-3">Default Graph Axes</p>
+            <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900 rounded-lg">
+              <p className="text-sm font-medium text-red-900 dark:text-red-200 mb-3">Default Graph Axes</p>
               <div className="flex flex-col sm:flex-row gap-3">
                 <div className="flex-1">
-                  <label className="block text-xs font-medium text-blue-700 dark:text-blue-300 mb-1">
+                  <label className="block text-xs font-medium text-red-700 dark:text-red-300 mb-1">
                     Default Y-Axis
                   </label>
                   <select
                     value={editingDefaultYMetricId ?? ''}
                     onChange={(e) => setEditingDefaultYMetricId(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-blue-300 dark:border-blue-700 rounded-lg bg-white dark:bg-gray-900"
+                    className="w-full px-3 py-2 text-sm border border-red-300 dark:border-red-700 rounded-lg bg-white dark:bg-gray-900"
                   >
                     <option value="">None</option>
                     {editingMetrics.map((m) => (
@@ -984,13 +984,13 @@ export default function GroupPage() {
                   </select>
                 </div>
                 <div className="flex-1">
-                  <label className="block text-xs font-medium text-blue-700 dark:text-blue-300 mb-1">
+                  <label className="block text-xs font-medium text-red-700 dark:text-red-300 mb-1">
                     Default X-Axis
                   </label>
                   <select
                     value={editingDefaultXMetricId ?? ''}
                     onChange={(e) => setEditingDefaultXMetricId(e.target.value)}
-                    className="w-full px-3 py-2 text-sm border border-blue-300 dark:border-blue-700 rounded-lg bg-white dark:bg-gray-900"
+                    className="w-full px-3 py-2 text-sm border border-red-300 dark:border-red-700 rounded-lg bg-white dark:bg-gray-900"
                   >
                     <option value="">None</option>
                     {editingMetrics.map((m) => (
@@ -999,7 +999,7 @@ export default function GroupPage() {
                   </select>
                 </div>
               </div>
-              <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
+              <p className="text-xs text-red-800 dark:text-red-400 mt-2">
                 These will be the initial axes shown when viewing the graph. Users can still change them.
               </p>
             </div>
@@ -1040,7 +1040,7 @@ export default function GroupPage() {
               onChange={(e) => setEditingGroupDescription(e.target.value)}
               placeholder="Describe what this group is for..."
               rows={3}
-              className="w-full px-3 py-2 border rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-gray-400 dark:placeholder:text-gray-500"
+              className="w-full px-3 py-2 border rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-red-800 focus:border-transparent placeholder:text-gray-400 dark:placeholder:text-gray-500"
             />
           </div>
 
@@ -1060,7 +1060,7 @@ export default function GroupPage() {
                 onClick={() => setEditingCaptainControlEnabled(!editingCaptainControlEnabled)}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                   editingCaptainControlEnabled
-                    ? 'bg-blue-600'
+                    ? 'bg-red-800'
                     : 'bg-gray-300 dark:bg-gray-600'
                 }`}
               >

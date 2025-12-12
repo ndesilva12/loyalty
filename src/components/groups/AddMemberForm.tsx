@@ -126,14 +126,14 @@ export default function AddMemberForm({ onSubmit, onCancel, onUploadImage, exist
       )}
 
       {/* Copy Invite Link Section */}
-      <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+      <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900 rounded-lg">
         <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
           Share this link to let people join your group:
         </p>
         <button
           type="button"
           onClick={handleCopyInviteLink}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-blue-300 dark:border-blue-700 rounded-lg text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
+          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-red-300 dark:border-red-700 rounded-lg text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
         >
           {linkCopied ? (
             <>
@@ -173,7 +173,7 @@ export default function AddMemberForm({ onSubmit, onCancel, onUploadImage, exist
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Brief description"
           maxLength={100}
-          className="w-full px-3 py-2 border rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-gray-400 dark:placeholder:text-gray-500"
+          className="w-full px-3 py-2 border rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-red-800 focus:border-transparent placeholder:text-gray-400 dark:placeholder:text-gray-500"
         />
       </div>
 
@@ -188,7 +188,7 @@ export default function AddMemberForm({ onSubmit, onCancel, onUploadImage, exist
             onClick={() => setImageSourceType('url')}
             className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm rounded-lg border transition-colors ${
               imageSourceType === 'url'
-                ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 text-blue-700 dark:text-blue-300'
+                ? 'bg-red-50 dark:bg-red-900/30 border-red-800 text-red-700 dark:text-red-300'
                 : 'border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
             }`}
           >
@@ -200,7 +200,7 @@ export default function AddMemberForm({ onSubmit, onCancel, onUploadImage, exist
             onClick={() => setImageSourceType('upload')}
             className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm rounded-lg border transition-colors ${
               imageSourceType === 'upload'
-                ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 text-blue-700 dark:text-blue-300'
+                ? 'bg-red-50 dark:bg-red-900/30 border-red-800 text-red-700 dark:text-red-300'
                 : 'border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
             }`}
           >
@@ -226,7 +226,7 @@ export default function AddMemberForm({ onSubmit, onCancel, onUploadImage, exist
             {!selectedFile ? (
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center cursor-pointer hover:border-blue-500 dark:hover:border-blue-400 transition-colors"
+                className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center cursor-pointer hover:border-red-800 dark:hover:border-red-400 transition-colors"
               >
                 <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
                 <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -273,7 +273,7 @@ export default function AddMemberForm({ onSubmit, onCancel, onUploadImage, exist
             type="checkbox"
             checked={isUser}
             onChange={(e) => setIsUser(e.target.checked)}
-            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            className="w-4 h-4 text-red-800 border-gray-300 rounded focus:ring-red-800"
           />
           <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
             This item represents a user

@@ -94,7 +94,7 @@ export default function JoinGroupPage() {
       <div className="min-h-screen flex flex-col">
         <Header />
         <div className="flex-1 flex items-center justify-center">
-          <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full" />
+          <div className="animate-spin w-8 h-8 border-4 border-red-800 border-t-transparent rounded-full" />
         </div>
       </div>
     );
@@ -133,7 +133,7 @@ export default function JoinGroupPage() {
         <Card className="p-8 max-w-md w-full">
           {/* Group Header */}
           <div className="text-center mb-6">
-            <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg">
+            <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-red-800 to-red-600 rounded-xl flex items-center justify-center shadow-lg">
               <Users className="w-8 h-8 text-white" />
             </div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
@@ -227,7 +227,7 @@ export default function JoinGroupPage() {
 
           {status === 'joining' && (
             <div className="text-center">
-              <Loader2 className="w-8 h-8 mx-auto mb-3 text-blue-500 animate-spin" />
+              <Loader2 className="w-8 h-8 mx-auto mb-3 text-red-800 animate-spin" />
               <p className="text-gray-600 dark:text-gray-400">
                 Sending join request...
               </p>
