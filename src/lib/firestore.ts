@@ -224,13 +224,14 @@ export async function deleteGroup(groupId: string): Promise<void> {
 
 export async function addMember(
   groupId: string,
-  email: string,
+  email: string | null,
   name: string,
   placeholderImageUrl: string | null = null,
   clerkId: string | null = null,
   status: GroupMember['status'] = 'placeholder',
   imageUrl: string | null = null,
-  isCaptain: boolean = false
+  isCaptain: boolean = false,
+  description: string | null = null
 ): Promise<GroupMember> {
   const memberId = uuidv4();
   const now = new Date();
@@ -244,6 +245,7 @@ export async function addMember(
     name,
     imageUrl,
     placeholderImageUrl,
+    description,
     status,
     visibleInGraph: true,
     isCaptain,
@@ -680,6 +682,8 @@ export function subscribeToMembers(
       return {
         ...data,
         id: doc.id,
+        email: data.email ?? null, // Backward compatibility for optional email
+        description: data.description ?? null, // Backward compatibility
         visibleInGraph: data.visibleInGraph ?? true,
         isCaptain,
         invitedAt: convertTimestamp(data.invitedAt),

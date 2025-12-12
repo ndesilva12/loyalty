@@ -147,7 +147,7 @@ export default function DataTable({
 
   const handleStartEditMember = (member: GroupMember) => {
     setEditingMember(member.id);
-    setEditMemberData({ name: member.name, email: member.email });
+    setEditMemberData({ name: member.name, email: member.email || '' });
   };
 
   const handleSaveMember = async () => {
@@ -423,6 +423,11 @@ export default function DataTable({
                             </span>
                           )}
                         </div>
+                        {member.description && (
+                          <div className="text-xs text-gray-600 dark:text-gray-300">
+                            {member.description}
+                          </div>
+                        )}
                         <div className="text-xs text-gray-500 dark:text-gray-400">
                           {member.isCaptain ? 'Captain' : member.status === 'placeholder' ? 'Pending' : 'Active'}
                         </div>

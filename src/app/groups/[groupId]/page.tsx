@@ -164,24 +164,32 @@ export default function GroupPage() {
     }
   }, [group, members, isCaptain, user, groupId, loading]);
 
-  const handleAddMember = async (data: { email: string; name: string; placeholderImageUrl: string }) => {
+  const handleAddMember = async (data: { email: string | null; name: string; placeholderImageUrl: string; description: string | null }) => {
     if (!user || !group) return;
 
     const member = await addMember(
       groupId,
       data.email,
       data.name,
-      data.placeholderImageUrl || null
+      data.placeholderImageUrl || null,
+      null, // clerkId
+      'placeholder', // status
+      null, // imageUrl
+      false, // isCaptain
+      data.description
     );
 
-    await createInvitation(
-      groupId,
-      group.name,
-      data.email,
-      member.id,
-      user.id,
-      user.fullName || user.emailAddresses[0]?.emailAddress || 'Unknown'
-    );
+    // Only create invitation if email is provided
+    if (data.email) {
+      await createInvitation(
+        groupId,
+        group.name,
+        data.email,
+        member.id,
+        user.id,
+        user.fullName || user.emailAddresses[0]?.emailAddress || 'Unknown'
+      );
+    }
 
     setShowAddMemberModal(false);
   };
@@ -544,8 +552,10 @@ export default function GroupPage() {
                   <select
                     value={yMetricId}
                     onChange={(e) => setYMetricId(e.target.value)}
-                    className="text-sm px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                    disabled={isYAxisLocked}
+                    className="text-sm px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
                   >
+                    <option value="">None</option>
                     {metricOptions.map((opt) => (
                       <option key={opt.value} value={opt.value}>
                         {opt.label}
@@ -561,8 +571,10 @@ export default function GroupPage() {
                   <select
                     value={xMetricId}
                     onChange={(e) => setXMetricId(e.target.value)}
-                    className="text-sm px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                    disabled={isXAxisLocked}
+                    className="text-sm px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
                   >
+                    <option value="">None</option>
                     {metricOptions.map((opt) => (
                       <option key={opt.value} value={opt.value}>
                         {opt.label}
@@ -580,12 +592,12 @@ export default function GroupPage() {
           <Card className="p-2 sm:p-6 -mx-4 sm:mx-0 rounded-none sm:rounded-xl">
             {/* Graph Title - hidden on mobile since axis labels are inline */}
             <h2 className="hidden sm:block text-center text-2xl md:text-3xl font-bold mb-3">
-              <span className="bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 dark:from-blue-400 dark:via-blue-300 dark:to-cyan-400 bg-clip-text text-transparent">
-                {group.metrics.find((m) => m.id === yMetricId)?.name || 'Y Metric'}
+              <span className={yMetricId ? 'bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 dark:from-blue-400 dark:via-blue-300 dark:to-cyan-400 bg-clip-text text-transparent' : 'text-gray-400 dark:text-gray-500'}>
+                {group.metrics.find((m) => m.id === yMetricId)?.name || 'None'}
               </span>
               <span className="mx-3 text-gray-300 dark:text-gray-600 font-normal">×</span>
-              <span className="bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 dark:from-emerald-400 dark:via-emerald-300 dark:to-teal-400 bg-clip-text text-transparent">
-                {group.metrics.find((m) => m.id === xMetricId)?.name || 'X Metric'}
+              <span className={xMetricId ? 'bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 dark:from-emerald-400 dark:via-emerald-300 dark:to-teal-400 bg-clip-text text-transparent' : 'text-gray-400 dark:text-gray-500'}>
+                {group.metrics.find((m) => m.id === xMetricId)?.name || 'None'}
               </span>
             </h2>
             <div className="w-full sm:pl-12 sm:pb-8">
@@ -683,7 +695,7 @@ export default function GroupPage() {
           onSubmit={handleAddMember}
           onCancel={() => setShowAddMemberModal(false)}
           onUploadImage={(file) => uploadMemberImage(groupId, file)}
-          existingEmails={members.map((m) => m.email.toLowerCase())}
+          existingEmails={members.filter((m) => m.email).map((m) => m.email!.toLowerCase())}
           groupId={groupId}
         />
       </Modal>
@@ -862,7 +874,7 @@ export default function GroupPage() {
                     onChange={(e) => setEditingDefaultYMetricId(e.target.value || null)}
                     className="w-full px-3 py-2 text-sm border border-blue-300 dark:border-blue-700 rounded-lg bg-white dark:bg-gray-900"
                   >
-                    <option value="">First metric</option>
+                    <option value="">None</option>
                     {editingMetrics.map((m) => (
                       <option key={m.id} value={m.id}>{m.name || 'Unnamed'}</option>
                     ))}
@@ -877,7 +889,7 @@ export default function GroupPage() {
                     onChange={(e) => setEditingDefaultXMetricId(e.target.value || null)}
                     className="w-full px-3 py-2 text-sm border border-blue-300 dark:border-blue-700 rounded-lg bg-white dark:bg-gray-900"
                   >
-                    <option value="">First metric</option>
+                    <option value="">None</option>
                     {editingMetrics.map((m) => (
                       <option key={m.id} value={m.id}>{m.name || 'Unnamed'}</option>
                     ))}

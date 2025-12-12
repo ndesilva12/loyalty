@@ -175,12 +175,22 @@ export default function MemberProfilePage() {
                 {member.name}
               </h1>
 
+              {member.description && (
+                <p className="text-gray-600 dark:text-gray-300 mb-2">
+                  {member.description}
+                </p>
+              )}
+
               <div className="flex flex-col sm:flex-row items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
-                <span className="flex items-center gap-1">
-                  <Mail className="w-4 h-4" />
-                  {member.email}
-                </span>
-                <span className="hidden sm:inline">•</span>
+                {member.email && (
+                  <>
+                    <span className="flex items-center gap-1">
+                      <Mail className="w-4 h-4" />
+                      {member.email}
+                    </span>
+                    <span className="hidden sm:inline">•</span>
+                  </>
+                )}
                 <span className="flex items-center gap-1">
                   <Calendar className="w-4 h-4" />
                   Joined {member.invitedAt.toLocaleDateString()}

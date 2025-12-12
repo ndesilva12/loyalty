@@ -52,11 +52,11 @@ export default function MemberGraph({
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isOverPopupRef = useRef(false);
 
-  const xMetric = metrics.find((m) => m.id === xMetricId);
-  const yMetric = metrics.find((m) => m.id === yMetricId);
+  const xMetric = xMetricId ? metrics.find((m) => m.id === xMetricId) : null;
+  const yMetric = yMetricId ? metrics.find((m) => m.id === yMetricId) : null;
 
   // Helper to format metric value with prefix/suffix
-  const formatValue = (value: number, metric: Metric | undefined): string => {
+  const formatValue = (value: number, metric: Metric | undefined | null): string => {
     if (!metric) return value.toFixed(1);
     return `${metric.prefix}${value.toFixed(1)}${metric.suffix}`;
   };
@@ -64,27 +64,42 @@ export default function MemberGraph({
   // Calculate positions for each member
   const plottedMembers = useMemo(() => {
     const activeMembers = members.filter((m) => m.status === 'accepted' || m.status === 'placeholder');
+    const totalMembers = activeMembers.length;
 
-    return activeMembers.map((member) => {
-      const xScore = scores.find(
-        (s) => s.memberId === member.id && s.metricId === xMetricId
-      );
-      const yScore = scores.find(
-        (s) => s.memberId === member.id && s.metricId === yMetricId
-      );
+    return activeMembers.map((member, index) => {
+      // When axis is "none" (empty string), spread members evenly
+      let xValue: number;
+      let yValue: number;
+      let xRaw: number;
+      let yRaw: number;
 
-      const xRaw = xScore?.averageValue ?? 50;
-      const yRaw = yScore?.averageValue ?? 50;
+      if (!xMetricId) {
+        // No X axis - spread horizontally
+        xValue = totalMembers > 1 ? (index / (totalMembers - 1)) * 80 + 10 : 50;
+        xRaw = 0;
+      } else {
+        const xScore = scores.find(
+          (s) => s.memberId === member.id && s.metricId === xMetricId
+        );
+        xRaw = xScore?.averageValue ?? 50;
+        const xMin = xMetric?.minValue ?? 0;
+        const xMax = xMetric?.maxValue ?? 100;
+        xValue = xMax > xMin ? ((xRaw - xMin) / (xMax - xMin)) * 100 : 50;
+      }
 
-      // Map the raw value to a percentage of the metric range
-      const xMin = xMetric?.minValue ?? 0;
-      const xMax = xMetric?.maxValue ?? 100;
-      const yMin = yMetric?.minValue ?? 0;
-      const yMax = yMetric?.maxValue ?? 100;
-
-      // Calculate position as percentage of range
-      const xValue = xMax > xMin ? ((xRaw - xMin) / (xMax - xMin)) * 100 : 50;
-      const yValue = yMax > yMin ? ((yRaw - yMin) / (yMax - yMin)) * 100 : 50;
+      if (!yMetricId) {
+        // No Y axis - spread vertically
+        yValue = totalMembers > 1 ? (index / (totalMembers - 1)) * 80 + 10 : 50;
+        yRaw = 0;
+      } else {
+        const yScore = scores.find(
+          (s) => s.memberId === member.id && s.metricId === yMetricId
+        );
+        yRaw = yScore?.averageValue ?? 50;
+        const yMin = yMetric?.minValue ?? 0;
+        const yMax = yMetric?.maxValue ?? 100;
+        yValue = yMax > yMin ? ((yRaw - yMin) / (yMax - yMin)) * 100 : 50;
+      }
 
       return {
         member,
@@ -257,16 +272,24 @@ export default function MemberGraph({
       {/* Y-axis label - hidden on mobile, shown on larger screens */}
       <div className="hidden md:block absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full pr-2 md:pr-4">
         <div className="transform -rotate-90 whitespace-nowrap">
-          <span className="px-3 py-1.5 rounded-full text-sm md:text-base font-semibold bg-gradient-to-r from-blue-500/10 to-cyan-500/10 dark:from-blue-400/20 dark:to-cyan-400/20 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800">
-            {yMetric?.name || 'Y Axis'}
+          <span className={`px-3 py-1.5 rounded-full text-sm md:text-base font-semibold border ${
+            yMetricId
+              ? 'bg-gradient-to-r from-blue-500/10 to-cyan-500/10 dark:from-blue-400/20 dark:to-cyan-400/20 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800'
+              : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 border-gray-200 dark:border-gray-700'
+          }`}>
+            {yMetric?.name || (yMetricId ? 'Y Axis' : 'None')}
           </span>
         </div>
       </div>
 
       {/* X-axis label - hidden on mobile, shown on larger screens */}
       <div className="hidden md:block absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full pt-2 md:pt-4">
-        <span className="px-3 py-1.5 rounded-full text-sm md:text-base font-semibold bg-gradient-to-r from-emerald-500/10 to-teal-500/10 dark:from-emerald-400/20 dark:to-teal-400/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
-          {xMetric?.name || 'X Axis'}
+        <span className={`px-3 py-1.5 rounded-full text-sm md:text-base font-semibold border ${
+          xMetricId
+            ? 'bg-gradient-to-r from-emerald-500/10 to-teal-500/10 dark:from-emerald-400/20 dark:to-teal-400/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'
+            : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 border-gray-200 dark:border-gray-700'
+        }`}>
+          {xMetric?.name || (xMetricId ? 'X Axis' : 'None')}
         </span>
       </div>
 
@@ -303,10 +326,10 @@ export default function MemberGraph({
       {/* Y-axis scale with inline label on mobile */}
       <div className="absolute left-1 md:left-2 top-0 bottom-0 flex flex-col justify-between py-2 text-xs text-gray-500 dark:text-gray-400">
         {/* Mobile Y-axis label inline */}
-        <span className="md:hidden text-[10px] font-semibold text-blue-600 dark:text-blue-400 truncate max-w-[3rem]">
-          {yMetric?.name || 'Y'}
+        <span className={`md:hidden text-[10px] font-semibold truncate max-w-[3rem] ${yMetricId ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}`}>
+          {yMetric?.name || (yMetricId ? 'Y' : '-')}
         </span>
-        {(() => {
+        {yMetricId && (() => {
           const min = yMetric?.minValue ?? 0;
           const max = yMetric?.maxValue ?? 100;
           const range = max - min;
@@ -317,7 +340,7 @@ export default function MemberGraph({
             <span key={pct} className="md:hidden">{prefix}{Math.round(min + (range * pct / 100))}{suffix}</span>
           ));
         })()}
-        {(() => {
+        {yMetricId && (() => {
           const min = yMetric?.minValue ?? 0;
           const max = yMetric?.maxValue ?? 100;
           const range = max - min;
@@ -332,7 +355,7 @@ export default function MemberGraph({
 
       {/* X-axis scale with inline label on mobile */}
       <div className="absolute left-0 right-0 bottom-1 md:bottom-2 flex justify-between items-center px-2 text-xs text-gray-500 dark:text-gray-400">
-        {(() => {
+        {xMetricId && (() => {
           const min = xMetric?.minValue ?? 0;
           const max = xMetric?.maxValue ?? 100;
           const range = max - min;
@@ -343,7 +366,7 @@ export default function MemberGraph({
             <span key={pct} className="md:hidden">{prefix}{Math.round(min + (range * pct / 100))}{suffix}</span>
           ));
         })()}
-        {(() => {
+        {xMetricId && (() => {
           const min = xMetric?.minValue ?? 0;
           const max = xMetric?.maxValue ?? 100;
           const range = max - min;
@@ -355,8 +378,8 @@ export default function MemberGraph({
           ));
         })()}
         {/* Mobile X-axis label inline */}
-        <span className="md:hidden text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 truncate max-w-[3rem]">
-          {xMetric?.name || 'X'}
+        <span className={`md:hidden text-[10px] font-semibold truncate max-w-[3rem] ${xMetricId ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400 dark:text-gray-500'}`}>
+          {xMetric?.name || (xMetricId ? 'X' : '-')}
         </span>
       </div>
 
@@ -408,7 +431,8 @@ export default function MemberGraph({
           }`}
           style={{
             left: popup.x,
-            top: Math.max(10, popup.y - (popup.isPinned ? 320 : 100)),
+            // On mobile (< 768px), position closer to avatar; on desktop, position clearly above
+            top: Math.max(10, popup.y - (popup.isPinned ? 320 : (typeof window !== 'undefined' && window.innerWidth >= 768 ? 130 : 80))),
           }}
           onMouseEnter={handlePopupMouseEnter}
           onMouseLeave={handlePopupMouseLeave}
@@ -445,6 +469,11 @@ export default function MemberGraph({
                 <div className="font-semibold text-gray-900 dark:text-white truncate">
                   {getMemberDisplayName(popup.member)}
                 </div>
+                {popup.member.description && (
+                  <div className="text-xs text-gray-600 dark:text-gray-300 truncate">
+                    {popup.member.description}
+                  </div>
+                )}
                 <div className="text-xs text-gray-500 dark:text-gray-400">
                   {popup.member.status === 'placeholder' ? 'Pending' : 'Active'}
                 </div>

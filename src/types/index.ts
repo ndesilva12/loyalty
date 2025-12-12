@@ -10,6 +10,7 @@ export interface User {
   name: string;
   imageUrl: string | null;
   placeholderImageUrl: string | null; // Set by group captain for unregistered users
+  bio: string | null; // User's personal bio/description
   createdAt: Date;
   updatedAt: Date;
 }
@@ -47,10 +48,11 @@ export interface GroupMember {
   groupId: string;
   userId: string; // Can be a placeholder user ID or actual user ID
   clerkId: string | null; // null if placeholder
-  email: string;
+  email: string | null; // Optional - not every member needs to be a real user
   name: string;
   imageUrl: string | null;
   placeholderImageUrl: string | null;
+  description: string | null; // Short description set by captain
   status: 'pending' | 'accepted' | 'declined' | 'placeholder';
   visibleInGraph: boolean; // Whether to show this member in the graph visualization
   isCaptain: boolean; // Whether this member is the group captain

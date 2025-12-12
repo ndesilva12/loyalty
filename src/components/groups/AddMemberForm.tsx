@@ -8,7 +8,7 @@ import Input from '@/components/ui/Input';
 type ImageSourceType = 'url' | 'upload';
 
 interface AddMemberFormProps {
-  onSubmit: (data: { email: string; name: string; placeholderImageUrl: string }) => Promise<void>;
+  onSubmit: (data: { email: string | null; name: string; placeholderImageUrl: string; description: string | null }) => Promise<void>;
   onCancel: () => void;
   onUploadImage?: (file: File) => Promise<string>;
   existingEmails?: string[];
@@ -18,6 +18,7 @@ interface AddMemberFormProps {
 export default function AddMemberForm({ onSubmit, onCancel, onUploadImage, existingEmails = [], groupId }: AddMemberFormProps) {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
   const [placeholderImageUrl, setPlaceholderImageUrl] = useState('');
   const [imageSourceType, setImageSourceType] = useState<ImageSourceType>('url');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -68,21 +69,19 @@ export default function AddMemberForm({ onSubmit, onCancel, onUploadImage, exist
     e.preventDefault();
     setError(null);
 
-    if (!email.trim()) {
-      setError('Email is required');
-      return;
-    }
-
     if (!name.trim()) {
       setError('Name is required');
       return;
     }
 
-    // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setError('Please enter a valid email address');
-      return;
+    // Email validation only if email is provided
+    const trimmedEmail = email.trim();
+    if (trimmedEmail) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(trimmedEmail)) {
+        setError('Please enter a valid email address');
+        return;
+      }
     }
 
     setLoading(true);
@@ -105,9 +104,10 @@ export default function AddMemberForm({ onSubmit, onCancel, onUploadImage, exist
       }
 
       await onSubmit({
-        email: email.trim().toLowerCase(),
+        email: trimmedEmail ? trimmedEmail.toLowerCase() : null,
         name: name.trim(),
         placeholderImageUrl: finalImageUrl,
+        description: description.trim() || null,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add member');
@@ -162,14 +162,28 @@ export default function AddMemberForm({ onSubmit, onCancel, onUploadImage, exist
       />
 
       <Input
-        label="Email Address"
+        label="Email Address (optional)"
         id="member-email"
         type="email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         placeholder="john@example.com"
-        required
       />
+
+      <div>
+        <label htmlFor="member-description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          Short Description (optional)
+        </label>
+        <input
+          id="member-description"
+          type="text"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Team lead, Designer, etc."
+          maxLength={100}
+          className="w-full px-3 py-2 border rounded-lg text-gray-900 dark:text-white bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-gray-400 dark:placeholder:text-gray-500"
+        />
+      </div>
 
       {/* Image source type selector */}
       <div>
@@ -261,8 +275,9 @@ export default function AddMemberForm({ onSubmit, onCancel, onUploadImage, exist
       </div>
 
       <p className="text-sm text-gray-500 dark:text-gray-400">
-        An invitation will be sent to this email address. If they don&apos;t have an account yet,
-        they can sign up and claim this membership.
+        {email.trim()
+          ? "An invitation will be sent to this email address. If they don't have an account yet, they can sign up and claim this membership."
+          : "Members without an email can be converted to real users later using a claim link."}
       </p>
 
       <div className="flex gap-3 pt-2">
