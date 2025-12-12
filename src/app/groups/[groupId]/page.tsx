@@ -628,7 +628,7 @@ export default function GroupPage() {
                 )}
               </h2>
               <div className="flex-1 w-full sm:pl-12 sm:pb-8">
-                <div className="w-full h-full sm:aspect-[4/3] lg:aspect-[16/10] sm:max-h-[70vh]">
+                <div className="w-full h-full min-h-[350px] sm:min-h-0 sm:aspect-[4/3] lg:aspect-[16/10] sm:max-h-[70vh]">
                   <MemberGraph
                     members={visibleMembers}
                     metrics={group.metrics}
@@ -647,7 +647,7 @@ export default function GroupPage() {
 
               {/* Mobile: axis selectors at bottom of graph card - attached to graph */}
               {group.metrics.length > 0 && (
-                <div className="sm:hidden flex items-center justify-center gap-4 py-1.5 px-3 bg-gray-100 dark:bg-gray-800 border-b border-x-0 border-gray-200 dark:border-gray-700">
+                <div className="sm:hidden flex items-center justify-center gap-4 py-1 px-2 bg-gray-100 dark:bg-gray-800">
                   <div className="flex items-center gap-1.5">
                     <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Y:</label>
                     <select

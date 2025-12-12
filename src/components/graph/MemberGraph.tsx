@@ -267,7 +267,7 @@ export default function MemberGraph({
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-full min-h-[400px] bg-gray-50 dark:bg-gray-800/50 rounded-none sm:rounded-xl border-x-0 sm:border-x border-y border-gray-200 dark:border-gray-700"
+      className="relative w-full h-full min-h-[300px] sm:min-h-[400px] bg-gray-50 dark:bg-gray-800/50 rounded-none sm:rounded-xl border-x-0 sm:border-x border-y border-gray-200 dark:border-gray-700"
     >
       {/* Y-axis label - hidden on mobile, shown on larger screens */}
       <div className="hidden md:block absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full pr-2 md:pr-4">
@@ -363,7 +363,7 @@ export default function MemberGraph({
       </div>
 
       {/* X-axis scale - numbers only, properly positioned */}
-      <div className="absolute left-0 right-0 bottom-1 md:bottom-2 flex justify-between items-center px-2 text-xs text-gray-500 dark:text-gray-400">
+      <div className="absolute left-0 right-0 bottom-0.5 md:bottom-2 flex justify-between items-center px-2 text-xs text-gray-500 dark:text-gray-400">
         {xMetricId && (() => {
           const min = xMetric?.minValue ?? 0;
           const max = xMetric?.maxValue ?? 100;
@@ -402,7 +402,7 @@ export default function MemberGraph({
       </div>
 
       {/* Plotted members */}
-      <div className="absolute inset-6 md:inset-8">
+      <div className="absolute inset-4 sm:inset-6 md:inset-8">
         {plottedMembers.map((data) => {
           const displayImage = getMemberDisplayImage(data.member);
           const displayName = getMemberDisplayName(data.member);
