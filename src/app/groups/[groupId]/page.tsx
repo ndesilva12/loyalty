@@ -69,6 +69,8 @@ export default function GroupPage() {
   const [editingMetrics, setEditingMetrics] = useState<Metric[]>([]);
   const [editingGroupName, setEditingGroupName] = useState('');
   const [editingGroupDescription, setEditingGroupDescription] = useState('');
+  const [editingDefaultYMetricId, setEditingDefaultYMetricId] = useState<string | null>(null);
+  const [editingDefaultXMetricId, setEditingDefaultXMetricId] = useState<string | null>(null);
   const [editingLockedYMetricId, setEditingLockedYMetricId] = useState<string | null>(null);
   const [editingLockedXMetricId, setEditingLockedXMetricId] = useState<string | null>(null);
   const [editingCaptainControlEnabled, setEditingCaptainControlEnabled] = useState(false);
@@ -91,19 +93,18 @@ export default function GroupPage() {
     const unsubscribeGroup = subscribeToGroup(groupId, (updatedGroup) => {
       setGroup(updatedGroup);
       if (updatedGroup && updatedGroup.metrics.length > 0) {
-        // Use locked metrics if set, otherwise use defaults
+        // Priority: locked > current selection > default > fallback
         if (updatedGroup.lockedXMetricId) {
           setXMetricId(updatedGroup.lockedXMetricId);
         } else if (!xMetricId) {
-          setXMetricId(updatedGroup.metrics[0].id);
+          setXMetricId(updatedGroup.defaultXMetricId || updatedGroup.metrics[0].id);
         }
 
         if (updatedGroup.lockedYMetricId) {
           setYMetricId(updatedGroup.lockedYMetricId);
-        } else if (!yMetricId && updatedGroup.metrics.length > 1) {
-          setYMetricId(updatedGroup.metrics[1].id);
         } else if (!yMetricId) {
-          setYMetricId(updatedGroup.metrics[0].id);
+          const fallbackY = updatedGroup.metrics.length > 1 ? updatedGroup.metrics[1].id : updatedGroup.metrics[0].id;
+          setYMetricId(updatedGroup.defaultYMetricId || fallbackY);
         }
       }
       setLoading(false);
@@ -205,13 +206,19 @@ export default function GroupPage() {
   const handleOpenMetricsModal = () => {
     if (group) {
       setEditingMetrics([...group.metrics]);
+      setEditingDefaultYMetricId(group.defaultYMetricId);
+      setEditingDefaultXMetricId(group.defaultXMetricId);
       setShowMetricsModal(true);
     }
   };
 
   const handleSaveMetrics = async () => {
     if (!group) return;
-    await updateGroup(groupId, { metrics: editingMetrics });
+    await updateGroup(groupId, {
+      metrics: editingMetrics,
+      defaultYMetricId: editingDefaultYMetricId,
+      defaultXMetricId: editingDefaultXMetricId,
+    });
     setShowMetricsModal(false);
   };
 
@@ -839,6 +846,48 @@ export default function GroupPage() {
             <Button variant="outline" onClick={handleAddMetric} className="w-full">
               + Add Metric
             </Button>
+          )}
+
+          {/* Default Axis Selection */}
+          {editingMetrics.length > 0 && (
+            <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+              <p className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-3">Default Graph Axes</p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex-1">
+                  <label className="block text-xs font-medium text-blue-700 dark:text-blue-300 mb-1">
+                    Default Y-Axis
+                  </label>
+                  <select
+                    value={editingDefaultYMetricId || ''}
+                    onChange={(e) => setEditingDefaultYMetricId(e.target.value || null)}
+                    className="w-full px-3 py-2 text-sm border border-blue-300 dark:border-blue-700 rounded-lg bg-white dark:bg-gray-900"
+                  >
+                    <option value="">First metric</option>
+                    {editingMetrics.map((m) => (
+                      <option key={m.id} value={m.id}>{m.name || 'Unnamed'}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex-1">
+                  <label className="block text-xs font-medium text-blue-700 dark:text-blue-300 mb-1">
+                    Default X-Axis
+                  </label>
+                  <select
+                    value={editingDefaultXMetricId || ''}
+                    onChange={(e) => setEditingDefaultXMetricId(e.target.value || null)}
+                    className="w-full px-3 py-2 text-sm border border-blue-300 dark:border-blue-700 rounded-lg bg-white dark:bg-gray-900"
+                  >
+                    <option value="">First metric</option>
+                    {editingMetrics.map((m) => (
+                      <option key={m.id} value={m.id}>{m.name || 'Unnamed'}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
+                These will be the initial axes shown when viewing the graph. Users can still change them.
+              </p>
+            </div>
           )}
         </div>
 

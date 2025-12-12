@@ -73,6 +73,8 @@ export async function createGroup(
     description,
     captainId,
     metrics: metricsWithIds,
+    defaultYMetricId: metricsWithIds.length > 1 ? metricsWithIds[1].id : (metricsWithIds[0]?.id || null),
+    defaultXMetricId: metricsWithIds[0]?.id || null,
     lockedYMetricId: null,
     lockedXMetricId: null,
     captainControlEnabled: false,
@@ -110,6 +112,8 @@ export async function getGroup(groupId: string): Promise<Group | null> {
     id: docSnap.id,
     captainId,
     metrics,
+    defaultYMetricId: data.defaultYMetricId ?? null,
+    defaultXMetricId: data.defaultXMetricId ?? null,
     lockedYMetricId: data.lockedYMetricId ?? null,
     lockedXMetricId: data.lockedXMetricId ?? null,
     captainControlEnabled: data.captainControlEnabled ?? false,
@@ -149,6 +153,8 @@ export async function getUserGroups(clerkId: string): Promise<Group[]> {
       id: docSnap.id,
       captainId,
       metrics,
+      defaultYMetricId: data.defaultYMetricId ?? null,
+      defaultXMetricId: data.defaultXMetricId ?? null,
       lockedYMetricId: data.lockedYMetricId ?? null,
       lockedXMetricId: data.lockedXMetricId ?? null,
       captainControlEnabled: data.captainControlEnabled ?? false,
@@ -181,7 +187,7 @@ export async function getUserGroups(clerkId: string): Promise<Group[]> {
 
 export async function updateGroup(
   groupId: string,
-  updates: Partial<Pick<Group, 'name' | 'description' | 'metrics' | 'lockedYMetricId' | 'lockedXMetricId' | 'captainControlEnabled'>>
+  updates: Partial<Pick<Group, 'name' | 'description' | 'metrics' | 'defaultYMetricId' | 'defaultXMetricId' | 'lockedYMetricId' | 'lockedXMetricId' | 'captainControlEnabled'>>
 ): Promise<void> {
   await updateDoc(doc(groupsCollection, groupId), {
     ...updates,
@@ -650,6 +656,8 @@ export function subscribeToGroup(
       id: docSnap.id,
       captainId,
       metrics,
+      defaultYMetricId: data.defaultYMetricId ?? null,
+      defaultXMetricId: data.defaultXMetricId ?? null,
       lockedYMetricId: data.lockedYMetricId ?? null,
       lockedXMetricId: data.lockedXMetricId ?? null,
       captainControlEnabled: data.captainControlEnabled ?? false,

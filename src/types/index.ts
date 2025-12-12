@@ -20,8 +20,10 @@ export interface Group {
   description: string;
   captainId: string; // Clerk user ID of the group captain
   metrics: Metric[];
-  lockedYMetricId: string | null; // If set, this metric is locked as the Y-axis
-  lockedXMetricId: string | null; // If set, this metric is locked as the X-axis
+  defaultYMetricId: string | null; // Default Y-axis metric (can be changed by viewer)
+  defaultXMetricId: string | null; // Default X-axis metric (can be changed by viewer)
+  lockedYMetricId: string | null; // If set, this metric is locked as the Y-axis (cannot be changed)
+  lockedXMetricId: string | null; // If set, this metric is locked as the X-axis (cannot be changed)
   captainControlEnabled: boolean; // If true, captain can always edit member display (name/image) even after claimed
   createdAt: Date;
   updatedAt: Date;
