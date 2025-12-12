@@ -54,16 +54,16 @@ export default function DemoPage() {
 
   const getScoreColor = (value: number) => {
     if (value >= 75) return 'text-green-600 dark:text-green-400';
-    if (value >= 50) return 'text-red-700 dark:text-red-400';
+    if (value >= 50) return 'text-lime-500 dark:text-lime-400';
     if (value >= 25) return 'text-yellow-600 dark:text-yellow-400';
-    return 'text-red-900 dark:text-red-500';
+    return 'text-lime-700 dark:text-lime-500';
   };
 
   const getScoreBgColor = (value: number) => {
     if (value >= 75) return 'bg-green-500';
-    if (value >= 50) return 'bg-red-700';
+    if (value >= 50) return 'bg-lime-500';
     if (value >= 25) return 'bg-yellow-500';
-    return 'bg-red-900';
+    return 'bg-lime-700';
   };
 
   return (
@@ -87,7 +87,7 @@ export default function DemoPage() {
                 <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
                   {mockGroup.name}
                 </h1>
-                <span className="px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 text-xs font-medium rounded">
+                <span className="px-2 py-0.5 bg-lime-100 dark:bg-lime-700/30 text-lime-600 dark:text-lime-300 text-xs font-medium rounded">
                   Demo
                 </span>
               </div>
@@ -97,12 +97,12 @@ export default function DemoPage() {
         </div>
 
         {/* Info banner */}
-        <Card className="mb-6 p-4 border-l-4 border-l-red-800 bg-red-50 dark:bg-red-900/20">
+        <Card className="mb-6 p-4 border-l-4 border-l-lime-600 bg-lime-50 dark:bg-lime-700/20">
           <div className="flex items-start gap-3">
-            <Info className="w-5 h-5 text-red-800 dark:text-red-400 flex-shrink-0 mt-0.5" />
-            <div className="text-sm text-red-900 dark:text-red-200">
+            <Info className="w-5 h-5 text-lime-600 dark:text-lime-400 flex-shrink-0 mt-0.5" />
+            <div className="text-sm text-lime-700 dark:text-lime-200">
               <p className="font-medium mb-1">This is a demo with mock data</p>
-              <p className="text-red-800 dark:text-red-300">
+              <p className="text-lime-600 dark:text-lime-300">
                 Explore the visualization features by switching metrics and viewing the data table.
                 Click on member avatars to see their detailed profile.
                 <Link href="/sign-up" className="ml-1 underline font-medium">

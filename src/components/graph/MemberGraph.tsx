@@ -517,7 +517,7 @@ export default function MemberGraph({
                             {metric.prefix}{ratings[metric.id] ?? Math.round((metric.minValue + metric.maxValue) / 2)}{metric.suffix}
                           </span>
                           {saving === metric.id && (
-                            <div className="w-3 h-3 border-2 border-red-800 border-t-transparent rounded-full animate-spin" />
+                            <div className="w-3 h-3 border-2 border-lime-600 border-t-transparent rounded-full animate-spin" />
                           )}
                         </div>
                       </div>

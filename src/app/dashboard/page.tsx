@@ -106,7 +106,7 @@ export default function DashboardPage() {
       <div className="min-h-screen flex flex-col">
         <Header />
         <div className="flex-1 flex items-center justify-center">
-          <div className="animate-spin w-8 h-8 border-4 border-red-800 border-t-transparent rounded-full" />
+          <div className="animate-spin w-8 h-8 border-4 border-lime-600 border-t-transparent rounded-full" />
         </div>
       </div>
     );
@@ -119,9 +119,9 @@ export default function DashboardPage() {
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
         {/* Pending Invitations */}
         {invitations.length > 0 && (
-          <Card className="mb-8 p-6 border-l-4 border-l-red-800">
+          <Card className="mb-8 p-6 border-l-4 border-l-lime-600">
             <div className="flex items-center gap-3 mb-4">
-              <Bell className="w-5 h-5 text-red-800" />
+              <Bell className="w-5 h-5 text-lime-600" />
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                 Pending Invitations
               </h2>
@@ -199,12 +199,12 @@ export default function DashboardPage() {
             {groups.map((group, index) => {
               // Rotate through different red gradient shades for visual variety
               const gradients = [
-                'from-red-800 to-red-600',
-                'from-red-700 to-red-500',
-                'from-red-900 to-red-700',
-                'from-rose-700 to-red-600',
-                'from-red-800 to-rose-600',
-                'from-red-600 to-red-400',
+                'from-lime-600 to-lime-500',
+                'from-lime-500 to-lime-500',
+                'from-lime-700 to-lime-500',
+                'from-lime-500 to-lime-500',
+                'from-lime-600 to-lime-500',
+                'from-lime-500 to-lime-400',
               ];
               const gradient = gradients[index % gradients.length];
 

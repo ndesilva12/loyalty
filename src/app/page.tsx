@@ -14,7 +14,7 @@ export default function Home() {
         <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-4xl md:text-6xl font-bold text-gray-900 dark:text-white mb-6">
             Map Group{' '}
-            <span className="bg-gradient-to-r from-red-800 via-red-600 to-red-500 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-lime-600 via-lime-500 to-lime-500 bg-clip-text text-transparent">
               Opinions
             </span>
           </h1>
@@ -56,8 +56,8 @@ export default function Home() {
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             <div className="text-center">
-              <div className="w-14 h-14 mx-auto mb-4 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center">
-                <Users className="w-7 h-7 text-red-800 dark:text-red-400" />
+              <div className="w-14 h-14 mx-auto mb-4 bg-lime-100 dark:bg-lime-700/30 rounded-xl flex items-center justify-center">
+                <Users className="w-7 h-7 text-lime-600 dark:text-lime-400" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
                 Create Groups
@@ -68,8 +68,8 @@ export default function Home() {
             </div>
 
             <div className="text-center">
-              <div className="w-14 h-14 mx-auto mb-4 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center">
-                <BarChart3 className="w-7 h-7 text-red-700 dark:text-red-400" />
+              <div className="w-14 h-14 mx-auto mb-4 bg-lime-100 dark:bg-lime-700/30 rounded-xl flex items-center justify-center">
+                <BarChart3 className="w-7 h-7 text-lime-500 dark:text-lime-400" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
                 Define Metrics
