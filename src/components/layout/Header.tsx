@@ -16,13 +16,13 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-2 py-2">
             <Image
               src="/scalegreen.png"
               alt="Scale"
               width={225}
               height={60}
-              className="h-[60px] w-auto"
+              className="h-[50px] w-auto"
               priority
             />
           </Link>
