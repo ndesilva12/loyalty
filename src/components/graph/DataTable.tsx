@@ -322,7 +322,7 @@ export default function DataTable({
         <thead className="sticky top-0 z-20 bg-gray-800">
           <tr className="border-b border-gray-700">
             <th
-              className="text-left py-2 sm:py-3 px-2 sm:px-3 font-semibold text-white cursor-pointer hover:bg-gray-700 transition-colors sticky left-0 bg-gray-800 z-10 min-w-[100px] sm:min-w-[140px]"
+              className="text-left py-2 sm:py-3 px-2 sm:px-3 font-semibold text-white cursor-pointer hover:bg-gray-700 transition-colors sticky left-0 top-0 bg-gray-800 z-30 min-w-[80px] sm:min-w-[140px]"
               onClick={() => handleSort('name')}
             >
               <div className="flex items-center gap-1">
@@ -335,7 +335,7 @@ export default function DataTable({
             {metrics.map((metric) => (
               <th
                 key={metric.id}
-                className="text-center py-2 sm:py-3 px-2 sm:px-4 font-semibold text-white min-w-[70px] sm:min-w-[100px] cursor-pointer hover:bg-gray-700 transition-colors"
+                className="text-center py-2 sm:py-3 px-2 sm:px-4 font-semibold text-white min-w-[50px] sm:min-w-[100px] cursor-pointer hover:bg-gray-700 transition-colors sticky top-0 bg-gray-800"
                 title={metric.description}
                 onClick={() => handleSort(metric.id)}
               >
@@ -349,7 +349,7 @@ export default function DataTable({
             ))}
             {/* Actions header at the end */}
             {isCaptain && (
-              <th className="text-center py-2 sm:py-3 px-2 font-semibold text-white w-16 sm:w-20">
+              <th className="text-center py-2 sm:py-3 px-2 font-semibold text-white w-16 sm:w-20 sticky top-0 bg-gray-800">
                 <Settings className="w-4 h-4 mx-auto text-gray-400" />
               </th>
             )}
@@ -435,21 +435,18 @@ export default function DataTable({
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="font-medium text-white text-xs sm:text-sm truncate flex items-center gap-1">
-                        <span className="truncate">{getMemberDisplayName(member)}</span>
+                      <div className="font-medium text-white text-xs sm:text-sm flex items-center gap-1">
+                        {/* Mobile: two-line name display */}
+                        <span className="sm:hidden flex flex-col leading-tight">
+                          <span className="truncate">{getMemberDisplayName(member).split(' ')[0]}</span>
+                          <span className="truncate text-gray-300">{getMemberDisplayName(member).split(' ').slice(1).join(' ')}</span>
+                        </span>
+                        {/* Desktop: single line */}
+                        <span className="hidden sm:inline truncate">{getMemberDisplayName(member)}</span>
                         {member.isCaptain && <Anchor className="w-3 h-3 text-lime-500 flex-shrink-0" />}
                         {!member.isCaptain && member.clerkId && coCaptainIds.includes(member.clerkId) && (
                           <Anchor className="w-3 h-3 text-emerald-400 flex-shrink-0" />
                         )}
-                      </div>
-                      <div className="text-[10px] sm:text-xs text-gray-400 truncate">
-                        {member.isCaptain
-                          ? 'Captain'
-                          : member.clerkId && coCaptainIds.includes(member.clerkId)
-                            ? 'Co-Captain'
-                            : member.status === 'placeholder'
-                              ? 'Pending'
-                              : 'Active'}
                       </div>
                     </div>
                   </Link>
