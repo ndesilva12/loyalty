@@ -1,8 +1,9 @@
-const CACHE_NAME = 'scale-v1';
+const CACHE_NAME = 'scale-v2';
 
 // Assets to cache on install
 const STATIC_ASSETS = [
   '/',
+  '/dashboard',
   '/manifest.json',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
