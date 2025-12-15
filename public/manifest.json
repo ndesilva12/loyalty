@@ -2,11 +2,18 @@
   "name": "Scale - Visual Group Ratings",
   "short_name": "Scale",
   "description": "A visual tool for plotting and rating group items on customizable metrics",
-  "start_url": "/",
+  "start_url": "/dashboard",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#7bb400",
+  "display_override": ["standalone", "minimal-ui"],
+  "background_color": "#1f2937",
+  "theme_color": "#1f2937",
   "orientation": "portrait-primary",
+  "id": "scale-app",
+  "handle_links": "preferred",
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
   "icons": [
     {
       "src": "/icons/icon-72x72.png",

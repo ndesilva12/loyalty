@@ -648,7 +648,7 @@ export default function GroupPage() {
         </div>
 
         {/* Desktop header - back + axis selectors + captain buttons */}
-        <div className="hidden sm:flex items-center justify-between mb-4 relative">
+        <div className="hidden sm:flex items-center justify-between mb-4 relative z-[200]">
           <Link
             href="/dashboard"
             className="inline-flex items-center text-sm text-gray-400 hover:text-white flex-shrink-0 z-10"

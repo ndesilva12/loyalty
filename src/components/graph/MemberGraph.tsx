@@ -462,10 +462,12 @@ export default function MemberGraph({
       {popup && (() => {
         const containerWidth = containerRef.current?.clientWidth || 300;
         const containerHeight = containerRef.current?.clientHeight || 300;
-        const popupWidth = popup.isPinned ? 280 : 200;
-        const popupHeight = popup.isPinned ? 340 : 160;
-        const avatarSize = 48;
+        const isMobile = containerWidth < 500;
+        const popupWidth = isMobile ? (popup.isPinned ? 240 : 180) : (popup.isPinned ? 280 : 200);
+        const popupHeight = isMobile ? (popup.isPinned ? 280 : 140) : (popup.isPinned ? 340 : 160);
+        const avatarSize = isMobile ? 40 : 48;
         const padding = 10;
+        const avatarClearance = avatarSize + 15; // Extra space to not cover avatar
 
         // Calculate position to place popup to the side of the avatar (not covering it)
         // Try to position to the right first, then left if not enough space
@@ -476,24 +478,40 @@ export default function MemberGraph({
         const rightSpace = containerWidth - popup.x - avatarSize / 2;
         const leftSpace = popup.x - avatarSize / 2;
 
-        if (rightSpace >= popupWidth + padding) {
-          // Position to the right of avatar
+        if (!isMobile && rightSpace >= popupWidth + padding) {
+          // Position to the right of avatar (desktop only)
           leftPos = popup.x + avatarSize / 2 + padding;
           arrowPosition = 'left';
-        } else if (leftSpace >= popupWidth + padding) {
-          // Position to the left of avatar
+        } else if (!isMobile && leftSpace >= popupWidth + padding) {
+          // Position to the left of avatar (desktop only)
           leftPos = popup.x - avatarSize / 2 - popupWidth - padding;
           arrowPosition = 'right';
         } else {
-          // Not enough horizontal space, position above
+          // Mobile or not enough horizontal space: position above/below
           leftPos = Math.min(Math.max(popupWidth / 2 + padding, popup.x), containerWidth - popupWidth / 2 - padding);
           arrowPosition = 'bottom';
         }
 
         // Calculate vertical position
+        let showAbove = true;
         if (arrowPosition === 'bottom') {
-          // Position above avatar
-          topPos = Math.max(padding, popup.y - popupHeight - padding);
+          // Check if there's enough room above the avatar
+          const spaceAbove = popup.y - avatarClearance;
+          const spaceBelow = containerHeight - popup.y - avatarSize;
+
+          if (spaceAbove >= popupHeight + padding) {
+            // Position above avatar with clearance
+            topPos = popup.y - popupHeight - avatarClearance;
+            showAbove = true;
+          } else if (spaceBelow >= popupHeight + padding) {
+            // Not enough space above, position below avatar
+            topPos = popup.y + avatarSize + padding;
+            showAbove = false;
+          } else {
+            // Very constrained - position above but allow overflow
+            topPos = Math.max(padding, popup.y - popupHeight - avatarClearance);
+            showAbove = true;
+          }
         } else {
           // Center vertically with avatar, but keep on screen
           const avatarY = popup.y;
@@ -502,6 +520,9 @@ export default function MemberGraph({
             containerHeight - popupHeight - padding
           );
         }
+
+        // Determine arrow direction based on position
+        const arrowDir = arrowPosition === 'bottom' ? (showAbove ? 'bottom' : 'top') : arrowPosition;
 
         return (
         <div
@@ -622,7 +643,7 @@ export default function MemberGraph({
           </div>
 
           {/* Arrow pointer - changes based on position */}
-          {arrowPosition === 'bottom' && (
+          {arrowDir === 'bottom' && (
             <div
               className="absolute left-1/2 bottom-0 transform -translate-x-1/2 translate-y-full"
               style={{ filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.1))' }}
@@ -630,7 +651,15 @@ export default function MemberGraph({
               <div className="border-8 border-transparent border-t-gray-800" />
             </div>
           )}
-          {arrowPosition === 'left' && (
+          {arrowDir === 'top' && (
+            <div
+              className="absolute left-1/2 top-0 transform -translate-x-1/2 -translate-y-full"
+              style={{ filter: 'drop-shadow(0 -1px 1px rgba(0,0,0,0.1))' }}
+            >
+              <div className="border-8 border-transparent border-b-gray-800" />
+            </div>
+          )}
+          {arrowDir === 'left' && (
             <div
               className="absolute left-0 top-1/2 transform -translate-x-full -translate-y-1/2"
               style={{ filter: 'drop-shadow(-1px 0 1px rgba(0,0,0,0.1))' }}
@@ -638,7 +667,7 @@ export default function MemberGraph({
               <div className="border-8 border-transparent border-r-gray-800" />
             </div>
           )}
-          {arrowPosition === 'right' && (
+          {arrowDir === 'right' && (
             <div
               className="absolute right-0 top-1/2 transform translate-x-full -translate-y-1/2"
               style={{ filter: 'drop-shadow(1px 0 1px rgba(0,0,0,0.1))' }}
