@@ -464,10 +464,10 @@ export default function GroupPage() {
   }
 
   return (
-    <div className={`min-h-screen flex flex-col bg-gray-900 ${viewMode === 'graph' ? 'sm:min-h-screen' : ''}`}>
+    <div className={`flex flex-col bg-gray-900 ${viewMode === 'graph' ? 'h-[100dvh] sm:min-h-screen sm:h-auto overflow-hidden sm:overflow-visible' : 'min-h-screen'}`}>
       <Header />
 
-      <main className={`flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-4 sm:py-8 ${viewMode === 'graph' ? 'sm:py-8 flex flex-col' : ''}`}>
+      <main className={`flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-2 sm:py-8 ${viewMode === 'graph' ? 'flex flex-col overflow-hidden' : ''}`}>
         {/* Mobile header - back + axis selectors + menu */}
         <div className="flex sm:hidden items-center justify-between mb-3">
           <Link
@@ -790,7 +790,7 @@ export default function GroupPage() {
         </div>
 
         {/* Control bar tabs - rounded, new selection style */}
-        <div className="bg-gray-900 rounded-t-xl -mx-4 sm:mx-0 p-1 border border-gray-700/50">
+        <div className="bg-gray-900 rounded-t-xl -mx-4 sm:mx-0 p-1">
           <div className="flex w-full gap-1">
             <button
               onClick={() => setViewMode('graph')}
@@ -832,9 +832,9 @@ export default function GroupPage() {
 
         {/* Content - attached to tabs above */}
         {viewMode === 'graph' && (
-          <div className="flex-1 flex flex-col -mx-4 sm:mx-0 bg-gray-900 rounded-b-xl border-x border-b border-gray-700/50">
-            <div className="flex-1 w-full p-2 sm:p-6 sm:pl-12 sm:pb-8">
-              <div className="w-full h-full min-h-[300px] sm:min-h-0 sm:aspect-[4/3] lg:aspect-[16/10] sm:max-h-[70vh]">
+          <div className="flex-1 flex flex-col -mx-4 sm:mx-0 bg-gray-900 rounded-b-xl min-h-0">
+            <div className="flex-1 w-full p-2 sm:p-6 sm:pl-12 sm:pb-8 min-h-0">
+              <div className="w-full h-full sm:min-h-0 sm:aspect-[4/3] lg:aspect-[16/10] sm:max-h-[70vh]">
                 <MemberGraph
                   members={visibleMembers}
                   metrics={group.metrics}
@@ -854,7 +854,7 @@ export default function GroupPage() {
         )}
 
         {viewMode === 'table' && (
-          <div className="bg-gray-900 rounded-b-xl -mx-4 sm:mx-0 p-2 sm:p-6 overflow-auto max-h-[calc(100vh-200px)] border-x border-b border-gray-700/50">
+          <div className="bg-gray-900 rounded-b-xl -mx-4 sm:mx-0 p-2 sm:p-6 overflow-auto max-h-[calc(100vh-200px)]">
             <DataTable
               members={members}
               metrics={group.metrics}
@@ -889,7 +889,7 @@ export default function GroupPage() {
         )}
 
         {viewMode === 'rate' && canRate && (
-          <div className="bg-gray-900 rounded-b-xl -mx-4 sm:mx-0 p-4 sm:p-6 border-x border-b border-gray-700/50">
+          <div className="bg-gray-900 rounded-b-xl -mx-4 sm:mx-0 p-4 sm:p-6">
             <RatingForm
               members={members}
               metrics={group.metrics}
