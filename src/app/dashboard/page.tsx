@@ -113,7 +113,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen flex flex-col bg-gray-900">
       <Header />
 
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
@@ -200,8 +200,8 @@ export default function DashboardPage() {
               return (
                 <Link key={group.id} href={`/groups/${group.id}`}>
                   <Card className="overflow-hidden hover:shadow-2xl hover:-translate-y-1 transition-all duration-200 cursor-pointer h-full border border-gray-200 dark:border-gray-700">
-                    {/* Rainbow gradient header accent */}
-                    <div className="h-1.5 bg-gradient-to-r from-red-500 via-orange-500 via-yellow-500 via-lime-500 to-green-500" />
+                    {/* Lime to emerald gradient header accent */}
+                    <div className="h-1.5 bg-gradient-to-r from-lime-500 to-emerald-600" />
 
                     <div className="p-6">
                       <div className="flex items-start justify-between">

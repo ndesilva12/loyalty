@@ -313,19 +313,14 @@ export default function DataTable({
       />
 
       <table className="w-full border-collapse">
-        <thead className="sticky top-0 z-20 bg-white dark:bg-gray-900">
-          <tr className="border-b border-gray-200 dark:border-gray-700">
-            {isCaptain && (
-              <th className="text-center py-2 sm:py-3 px-2 font-semibold text-gray-900 dark:text-white w-12 sm:w-16 sticky left-0 bg-white dark:bg-gray-900 z-10">
-                <Settings className="w-4 h-4 mx-auto text-gray-400" />
-              </th>
-            )}
+        <thead className="sticky top-0 z-20 bg-gray-800">
+          <tr className="border-b border-gray-700">
             <th
-              className={`text-left py-2 sm:py-3 px-2 sm:px-4 font-semibold text-gray-900 dark:text-white cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${isCaptain ? '' : 'sticky left-0 bg-white dark:bg-gray-900 z-10'}`}
+              className="text-left py-2 sm:py-3 px-2 sm:px-3 font-semibold text-white cursor-pointer hover:bg-gray-700 transition-colors sticky left-0 bg-gray-800 z-10 min-w-[100px] sm:min-w-[140px]"
               onClick={() => handleSort('name')}
             >
               <div className="flex items-center gap-1">
-                <span>Item</span>
+                <span className="text-xs sm:text-sm">Item</span>
                 {sortColumn === 'name' && (
                   sortDirection === 'desc' ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />
                 )}
@@ -334,7 +329,7 @@ export default function DataTable({
             {metrics.map((metric) => (
               <th
                 key={metric.id}
-                className="text-center py-2 sm:py-3 px-2 sm:px-4 font-semibold text-gray-900 dark:text-white min-w-[80px] sm:min-w-[120px] cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                className="text-center py-2 sm:py-3 px-2 sm:px-4 font-semibold text-white min-w-[70px] sm:min-w-[100px] cursor-pointer hover:bg-gray-700 transition-colors"
                 title={metric.description}
                 onClick={() => handleSort(metric.id)}
               >
@@ -344,38 +339,25 @@ export default function DataTable({
                     sortDirection === 'desc' ? <ChevronDown className="w-3 h-3" /> : <ChevronUp className="w-3 h-3" />
                   )}
                 </div>
-                {canRate && (
-                  <div className="text-xs font-normal text-gray-500 dark:text-gray-400 hidden sm:block">
-                    (click to rate)
-                  </div>
-                )}
               </th>
             ))}
+            {/* Actions header at the end */}
+            {isCaptain && (
+              <th className="text-center py-2 sm:py-3 px-2 font-semibold text-white w-16 sm:w-20">
+                <Settings className="w-4 h-4 mx-auto text-gray-400" />
+              </th>
+            )}
           </tr>
         </thead>
         <tbody>
           {activeMembers.map((member) => (
             <tr
               key={member.id}
-              className={`border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${
+              className={`border-b border-gray-700 hover:bg-gray-700/50 transition-colors ${
                 !member.visibleInGraph ? 'opacity-50' : ''
               }`}
             >
-              {/* Actions cell for captain - now first */}
-              {isCaptain && (
-                <td className="py-2 sm:py-3 px-2 text-center sticky left-0 bg-white dark:bg-gray-900 z-10">
-                  <button
-                    ref={(el) => { actionButtonRefs.current[member.id] = el; }}
-                    data-action-button
-                    onClick={() => handleToggleMemberActions(member.id)}
-                    className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                    title="Item actions"
-                  >
-                    <Settings className="w-4 h-4" />
-                  </button>
-                </td>
-              )}
-              <td className={`py-2 sm:py-3 px-2 sm:px-4 ${isCaptain ? '' : 'sticky left-0 bg-white dark:bg-gray-900 z-10'}`}>
+              <td className="py-2 sm:py-3 px-2 sm:px-3 sticky left-0 bg-gray-800 z-10">
                 {editingMember === member.id ? (
                   <div className="space-y-2">
                     <input
@@ -409,101 +391,53 @@ export default function DataTable({
                     </div>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2 sm:gap-3">
-                    {/* Avatar with eye toggle below on mobile */}
-                    <div className="flex flex-col items-center gap-1">
-                      <div className="relative group">
-                        <Link
-                          href={`/groups/${groupId}/members/${member.id}`}
-                          className="flex items-center hover:text-lime-600 dark:hover:text-lime-400 transition-colors"
+                  <Link
+                    href={`/groups/${groupId}/members/${member.id}`}
+                    className="flex items-center gap-2 hover:text-lime-400 transition-colors"
+                    onClick={(e) => {
+                      if (onMemberClick) {
+                        e.preventDefault();
+                        onMemberClick(member);
+                      }
+                    }}
+                  >
+                    <div className="relative group flex-shrink-0">
+                      <Avatar
+                        src={getMemberDisplayImage(member)}
+                        alt={getMemberDisplayName(member)}
+                        size="sm"
+                      />
+                      {canEditMember(member) && onUploadMemberImage && (
+                        <button
                           onClick={(e) => {
-                            if (onMemberClick) {
-                              e.preventDefault();
-                              onMemberClick(member);
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (fileInputRef.current) {
+                              fileInputRef.current.dataset.memberId = member.id;
+                              fileInputRef.current.click();
                             }
                           }}
+                          className="absolute -bottom-1 -right-1 w-4 h-4 bg-lime-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="Upload image"
                         >
-                          <Avatar
-                            src={getMemberDisplayImage(member)}
-                            alt={getMemberDisplayName(member)}
-                            size="sm"
-                          />
-                        </Link>
-                        {/* Image upload button for unclaimed members */}
-                        {canEditMember(member) && onUploadMemberImage && (
-                          <button
-                            onClick={() => {
-                              if (fileInputRef.current) {
-                                fileInputRef.current.dataset.memberId = member.id;
-                                fileInputRef.current.click();
-                              }
-                            }}
-                            className="absolute -bottom-1 -right-1 w-5 h-5 bg-lime-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                            title="Upload image"
-                          >
-                            {uploadingImage === member.id ? (
-                              <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                            ) : (
-                              <Camera className="w-3 h-3" />
-                            )}
-                          </button>
-                        )}
-                      </div>
-                      {/* Eye toggle below avatar on mobile */}
-                      {showVisibilityToggle && (
-                        <button
-                          onClick={() => onToggleVisibility?.(member.id, !member.visibleInGraph)}
-                          className={`sm:hidden p-1 rounded transition-colors ${
-                            member.visibleInGraph
-                              ? 'text-lime-600 dark:text-lime-400'
-                              : 'text-gray-400'
-                          }`}
-                          title={member.visibleInGraph ? 'Hide from graph' : 'Show in graph'}
-                        >
-                          {member.visibleInGraph ? (
-                            <Eye className="w-3 h-3" />
+                          {uploadingImage === member.id ? (
+                            <div className="w-2 h-2 border border-white border-t-transparent rounded-full animate-spin" />
                           ) : (
-                            <EyeOff className="w-3 h-3" />
+                            <Camera className="w-2 h-2" />
                           )}
                         </button>
                       )}
                     </div>
-                    <Link
-                      href={`/groups/${groupId}/members/${member.id}`}
-                      className="hover:text-lime-600 dark:hover:text-lime-400 transition-colors flex-1 min-w-0"
-                      onClick={(e) => {
-                        if (onMemberClick) {
-                          e.preventDefault();
-                          onMemberClick(member);
-                        }
-                      }}
-                    >
-                      <div>
-                        <div className="font-medium text-gray-900 dark:text-white flex items-center gap-1.5 text-sm sm:text-base">
-                          <span className="truncate">{getMemberDisplayName(member)}</span>
-                          {/* Icons hidden on mobile */}
-                          {member.isCaptain && (
-                            <span title="Group Captain" className="hidden sm:inline">
-                              <Anchor className="w-3.5 h-3.5 text-lime-600" />
-                            </span>
-                          )}
-                          {member.displayMode === 'custom' && (
-                            <span title="Custom display" className="hidden sm:inline text-xs text-lime-500">
-                              <Pencil className="w-3 h-3" />
-                            </span>
-                          )}
-                        </div>
-                        {member.description && (
-                          <div className="text-xs text-gray-600 dark:text-gray-300 truncate hidden sm:block">
-                            {member.description}
-                          </div>
-                        )}
-                        <div className="text-xs text-gray-500 dark:text-gray-400">
-                          {member.isCaptain ? 'Captain' : member.status === 'placeholder' ? 'Pending' : 'Active'}
-                        </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-white text-xs sm:text-sm truncate flex items-center gap-1">
+                        <span className="truncate">{getMemberDisplayName(member)}</span>
+                        {member.isCaptain && <Anchor className="w-3 h-3 text-lime-500 flex-shrink-0" />}
                       </div>
-                    </Link>
-                  </div>
+                      <div className="text-[10px] sm:text-xs text-gray-400 truncate">
+                        {member.isCaptain ? 'Captain' : member.status === 'placeholder' ? 'Pending' : 'Active'}
+                      </div>
+                    </div>
+                  </Link>
                 )}
               </td>
               {metrics.map((metric) => {
@@ -515,7 +449,7 @@ export default function DataTable({
                 return (
                   <td
                     key={metric.id}
-                    className="py-3 px-4 text-center"
+                    className="py-2 sm:py-3 px-2 sm:px-4 text-center"
                   >
                     {isEditing ? (
                       <div className="flex flex-col items-center gap-2">
@@ -525,18 +459,18 @@ export default function DataTable({
                           max={metric.maxValue}
                           value={editValue}
                           onChange={(e) => handleSliderChange(Number(e.target.value))}
-                          className="w-full h-2 accent-lime-600"
+                          className="w-full h-2 accent-lime-500"
                         />
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium">
+                          <span className="text-sm font-medium text-white">
                             {metric.prefix}{editValue}{metric.suffix}
                           </span>
                           {saving && (
-                            <div className="w-3 h-3 border-2 border-lime-600 border-t-transparent rounded-full animate-spin" />
+                            <div className="w-3 h-3 border-2 border-lime-500 border-t-transparent rounded-full animate-spin" />
                           )}
                           <button
                             onClick={handleCancelEdit}
-                            className="p-1 bg-gray-500 text-white rounded hover:bg-gray-600"
+                            className="p-1 bg-gray-600 text-white rounded hover:bg-gray-500"
                           >
                             <X className="w-3 h-3" />
                           </button>
@@ -544,18 +478,18 @@ export default function DataTable({
                       </div>
                     ) : (
                       <div
-                        className={`${canRate && onSubmitRating ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg p-2 -m-2 transition-colors' : ''}`}
+                        className={`${canRate && onSubmitRating ? 'cursor-pointer hover:bg-gray-700 rounded-lg p-1.5 -m-1.5 transition-colors' : ''}`}
                         onClick={() => canRate && onSubmitRating && handleStartEdit(member.id, metric.id)}
                       >
-                        <div className={`font-semibold ${getScoreColor(score, metric)}`}>
+                        <div className={`font-semibold text-sm ${getScoreColor(score, metric)}`}>
                           {metric.prefix}{score.toFixed(1)}{metric.suffix}
                         </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                        <div className="text-[10px] sm:text-xs text-gray-400">
                           {count} rating{count !== 1 ? 's' : ''}
                         </div>
                         {userRating !== null && (
-                          <div className="text-xs text-lime-600 dark:text-lime-400 mt-1">
-                            Your: {metric.prefix}{userRating}{metric.suffix}
+                          <div className="text-[10px] sm:text-xs text-lime-400 mt-0.5">
+                            You: {metric.prefix}{userRating}{metric.suffix}
                           </div>
                         )}
                       </div>
@@ -563,13 +497,46 @@ export default function DataTable({
                   </td>
                 );
               })}
+              {/* Actions cell at the end */}
+              {isCaptain && (
+                <td className="py-2 sm:py-3 px-2 text-center">
+                  <div className="flex items-center justify-center gap-1">
+                    {showVisibilityToggle && (
+                      <button
+                        onClick={() => onToggleVisibility?.(member.id, !member.visibleInGraph)}
+                        className={`p-1.5 rounded transition-colors ${
+                          member.visibleInGraph
+                            ? 'text-lime-400 hover:bg-gray-700'
+                            : 'text-gray-500 hover:bg-gray-700'
+                        }`}
+                        title={member.visibleInGraph ? 'Hide from graph' : 'Show in graph'}
+                      >
+                        {member.visibleInGraph ? (
+                          <Eye className="w-4 h-4" />
+                        ) : (
+                          <EyeOff className="w-4 h-4" />
+                        )}
+                      </button>
+                    )}
+                    <button
+                      ref={(el) => { actionButtonRefs.current[member.id] = el; }}
+                      data-action-button
+                      onClick={() => handleToggleMemberActions(member.id)}
+                      className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-700 rounded transition-colors"
+                      title="Item actions"
+                    >
+                      <Settings className="w-4 h-4" />
+                    </button>
+                  </div>
+                </td>
+              )}
             </tr>
           ))}
         </tbody>
       </table>
 
       {activeMembers.length === 0 && (
-        <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+        <div className="text-center py-8 text-gray-400">
           No items to display
         </div>
       )}
@@ -578,7 +545,7 @@ export default function DataTable({
       {showMemberActions && dropdownPosition && (
         <div
           data-dropdown
-          className="fixed w-72 max-w-[calc(100vw-32px)] bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 max-h-[70vh] overflow-y-auto"
+          className="fixed w-72 max-w-[calc(100vw-32px)] bg-gray-800 rounded-lg shadow-lg border border-gray-700 z-50 max-h-[70vh] overflow-y-auto"
           style={{
             top: dropdownPosition.top,
             left: dropdownPosition.left,
