@@ -187,7 +187,7 @@ export default function RatingForm({
 
       {/* Rating sliders */}
       {selectedMember && (
-        <div className="bg-gray-700 rounded-lg p-3 sm:p-6">
+        <div className="bg-gray-800/50 rounded-lg p-3 sm:p-6 border border-gray-700/50">
           {/* Desktop header - hidden on mobile */}
           <div className="hidden sm:flex items-center gap-4 mb-6 pb-4 border-b border-gray-600">
             <Avatar

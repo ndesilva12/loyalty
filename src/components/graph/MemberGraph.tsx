@@ -267,15 +267,15 @@ export default function MemberGraph({
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-full min-h-[300px] sm:min-h-[400px] bg-gray-50 dark:bg-gray-800/50 rounded-none sm:rounded-xl border-x-0 sm:border-x border-y border-gray-200 dark:border-gray-700"
+      className="relative w-full h-full min-h-[300px] sm:min-h-[400px] bg-gray-900 rounded-none sm:rounded-xl border border-gray-700/50"
     >
       {/* Y-axis label - hidden on mobile, shown on larger screens */}
-      <div className="hidden md:block absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full pr-2 md:pr-4">
+      <div className="hidden md:block absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full pr-1 md:pr-2">
         <div className="transform -rotate-90 whitespace-nowrap">
           <span className={`px-3 py-1.5 rounded-full text-sm md:text-base font-semibold border ${
             yMetricId
-              ? 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-600 shadow-sm'
-              : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 border-gray-200 dark:border-gray-700'
+              ? 'bg-gray-800 text-gray-200 border-gray-600 shadow-sm'
+              : 'bg-gray-800 text-gray-500 border-gray-700'
           }`}>
             {yMetric?.name || (yMetricId ? 'Y Axis' : 'None')}
           </span>
@@ -283,11 +283,11 @@ export default function MemberGraph({
       </div>
 
       {/* X-axis label - hidden on mobile, shown on larger screens */}
-      <div className="hidden md:block absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full pt-2 md:pt-4">
+      <div className="hidden md:block absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full pt-1 md:pt-2">
         <span className={`px-3 py-1.5 rounded-full text-sm md:text-base font-semibold border ${
           xMetricId
-            ? 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-600 shadow-sm'
-            : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 border-gray-200 dark:border-gray-700'
+            ? 'bg-gray-800 text-gray-200 border-gray-600 shadow-sm'
+            : 'bg-gray-800 text-gray-500 border-gray-700'
         }`}>
           {xMetric?.name || (xMetricId ? 'X Axis' : 'None')}
         </span>
@@ -296,7 +296,7 @@ export default function MemberGraph({
       {/* Mobile Y-axis label - positioned at 75% mark (25% from top) */}
       {yMetricId && (
         <div className="md:hidden absolute left-1 top-[25%] -translate-y-1/2 z-10">
-          <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-white/90 dark:bg-gray-800/90 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600 shadow-sm whitespace-nowrap">
+          <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-gray-800/90 text-gray-300 border border-gray-600 shadow-sm whitespace-nowrap">
             {yMetric?.name || 'Y'}
           </span>
         </div>
@@ -305,7 +305,7 @@ export default function MemberGraph({
       {/* Mobile X-axis label - positioned at 75% mark */}
       {xMetricId && (
         <div className="md:hidden absolute bottom-3 left-[75%] -translate-x-1/2 z-10">
-          <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-white/90 dark:bg-gray-800/90 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600 shadow-sm whitespace-nowrap">
+          <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-gray-800/90 text-gray-300 border border-gray-600 shadow-sm whitespace-nowrap">
             {xMetric?.name || 'X'}
           </span>
         </div>
@@ -459,21 +459,60 @@ export default function MemberGraph({
       </div>
 
       {/* Enhanced Popup */}
-      {popup && (
+      {popup && (() => {
+        const containerWidth = containerRef.current?.clientWidth || 300;
+        const containerHeight = containerRef.current?.clientHeight || 300;
+        const popupWidth = popup.isPinned ? 280 : 200;
+        const popupHeight = popup.isPinned ? 340 : 160;
+        const avatarSize = 48;
+        const padding = 10;
+
+        // Calculate position to place popup to the side of the avatar (not covering it)
+        // Try to position to the right first, then left if not enough space
+        let leftPos: number;
+        let topPos: number;
+        let arrowPosition: 'left' | 'right' | 'bottom' = 'bottom';
+
+        const rightSpace = containerWidth - popup.x - avatarSize / 2;
+        const leftSpace = popup.x - avatarSize / 2;
+
+        if (rightSpace >= popupWidth + padding) {
+          // Position to the right of avatar
+          leftPos = popup.x + avatarSize / 2 + padding;
+          arrowPosition = 'left';
+        } else if (leftSpace >= popupWidth + padding) {
+          // Position to the left of avatar
+          leftPos = popup.x - avatarSize / 2 - popupWidth - padding;
+          arrowPosition = 'right';
+        } else {
+          // Not enough horizontal space, position above
+          leftPos = Math.min(Math.max(popupWidth / 2 + padding, popup.x), containerWidth - popupWidth / 2 - padding);
+          arrowPosition = 'bottom';
+        }
+
+        // Calculate vertical position
+        if (arrowPosition === 'bottom') {
+          // Position above avatar
+          topPos = Math.max(padding, popup.y - popupHeight - padding);
+        } else {
+          // Center vertically with avatar, but keep on screen
+          const avatarY = popup.y;
+          topPos = Math.min(
+            Math.max(padding, avatarY - popupHeight / 2),
+            containerHeight - popupHeight - padding
+          );
+        }
+
+        return (
         <div
           ref={popupRef}
-          className={`absolute z-50 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 ${
+          className={`absolute z-50 bg-gray-800 rounded-xl shadow-2xl border border-gray-700 ${
             popup.isPinned ? 'min-w-[280px] max-w-[90vw]' : 'min-w-[200px] max-w-[85vw]'
           }`}
           style={{
-            // Calculate left position, clamping to stay within screen bounds
-            left: Math.min(
-              Math.max(popup.isPinned ? 140 : 100, popup.x),
-              (containerRef.current?.clientWidth || 300) - (popup.isPinned ? 140 : 100)
-            ),
-            transform: 'translateX(-50%)',
-            // Position popup above the avatar so it doesn't cover the icon
-            top: Math.max(10, popup.y - (popup.isPinned ? 340 : (typeof window !== 'undefined' && window.innerWidth >= 768 ? 160 : 120))),
+            left: leftPos,
+            top: topPos,
+            transform: arrowPosition === 'bottom' ? 'translateX(-50%)' : 'none',
           }}
           onMouseEnter={handlePopupMouseEnter}
           onMouseLeave={handlePopupMouseLeave}
@@ -491,7 +530,7 @@ export default function MemberGraph({
           <div className="p-4">
             {/* Member info header */}
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex-shrink-0">
+              <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-700 flex-shrink-0">
                 {getMemberDisplayImage(popup.member) ? (
                   <Image
                     src={getMemberDisplayImage(popup.member) || ''}
@@ -502,36 +541,36 @@ export default function MemberGraph({
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
-                    <User className="w-6 h-6 text-gray-500" />
+                    <User className="w-6 h-6 text-gray-400" />
                   </div>
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="font-semibold text-gray-900 dark:text-white truncate">
+                <div className="font-semibold text-white truncate">
                   {getMemberDisplayName(popup.member)}
                 </div>
                 {popup.member.description && (
-                  <div className="text-xs text-gray-600 dark:text-gray-300 truncate">
+                  <div className="text-xs text-gray-300 truncate">
                     {popup.member.description}
                   </div>
                 )}
-                <div className="text-xs text-gray-500 dark:text-gray-400">
+                <div className="text-xs text-gray-400">
                   {popup.member.status === 'placeholder' ? 'Pending' : 'Active'}
                 </div>
               </div>
             </div>
 
             {/* Current scores - show raw values with formatting */}
-            <div className="text-sm text-gray-600 dark:text-gray-400 mb-3 pb-3 border-b border-gray-100 dark:border-gray-700">
+            <div className="text-sm text-gray-400 mb-3 pb-3 border-b border-gray-700">
               <div className="flex justify-between">
                 <span>{yMetric?.name}:</span>
-                <span className="font-medium text-gray-900 dark:text-white">
+                <span className="font-medium text-white">
                   {formatValue(plottedMembers.find(p => p.member.id === popup.member.id)?.yRaw ?? 0, yMetric)}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span>{xMetric?.name}:</span>
-                <span className="font-medium text-gray-900 dark:text-white">
+                <span className="font-medium text-white">
                   {formatValue(plottedMembers.find(p => p.member.id === popup.member.id)?.xRaw ?? 0, xMetric)}
                 </span>
               </div>
@@ -539,17 +578,17 @@ export default function MemberGraph({
 
             {/* Rating inputs - only show when pinned and user can rate */}
             {popup.isPinned && canRate && onSubmitRating && (
-              <div className="mb-3 pb-3 border-b border-gray-100 dark:border-gray-700">
-                <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+              <div className="mb-3 pb-3 border-b border-gray-700">
+                <div className="text-xs font-medium text-gray-400 mb-2">
                   Your Ratings (auto-saves):
                 </div>
                 <div className="space-y-3 max-h-[200px] overflow-y-auto">
                   {metrics.map((metric) => (
                     <div key={metric.id} className="space-y-1">
                       <div className="flex items-center justify-between text-xs">
-                        <span className="text-gray-700 dark:text-gray-300">{metric.name}</span>
+                        <span className="text-gray-300">{metric.name}</span>
                         <div className="flex items-center gap-2">
-                          <span className="font-medium text-gray-900 dark:text-white">
+                          <span className="font-medium text-white">
                             {metric.prefix}{ratings[metric.id] ?? Math.round((metric.minValue + metric.maxValue) / 2)}{metric.suffix}
                           </span>
                           {saving === metric.id && (
@@ -582,15 +621,34 @@ export default function MemberGraph({
             </Button>
           </div>
 
-          {/* Arrow pointer */}
-          <div
-            className="absolute left-1/2 bottom-0 transform -translate-x-1/2 translate-y-full"
-            style={{ filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.1))' }}
-          >
-            <div className="border-8 border-transparent border-t-white dark:border-t-gray-800" />
-          </div>
+          {/* Arrow pointer - changes based on position */}
+          {arrowPosition === 'bottom' && (
+            <div
+              className="absolute left-1/2 bottom-0 transform -translate-x-1/2 translate-y-full"
+              style={{ filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.1))' }}
+            >
+              <div className="border-8 border-transparent border-t-gray-800" />
+            </div>
+          )}
+          {arrowPosition === 'left' && (
+            <div
+              className="absolute left-0 top-1/2 transform -translate-x-full -translate-y-1/2"
+              style={{ filter: 'drop-shadow(-1px 0 1px rgba(0,0,0,0.1))' }}
+            >
+              <div className="border-8 border-transparent border-r-gray-800" />
+            </div>
+          )}
+          {arrowPosition === 'right' && (
+            <div
+              className="absolute right-0 top-1/2 transform translate-x-full -translate-y-1/2"
+              style={{ filter: 'drop-shadow(1px 0 1px rgba(0,0,0,0.1))' }}
+            >
+              <div className="border-8 border-transparent border-l-gray-800" />
+            </div>
+          )}
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

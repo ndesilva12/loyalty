@@ -405,14 +405,95 @@ export default function GroupPage() {
       <Header />
 
       <main className={`flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-4 sm:py-8 ${viewMode === 'graph' ? 'sm:py-8 flex flex-col' : ''}`}>
-        {/* Mobile header - back + menu only */}
+        {/* Mobile header - back + axis selectors + menu */}
         <div className="flex sm:hidden items-center justify-between mb-3">
           <Link
             href="/dashboard"
-            className="p-1 -ml-1 text-gray-400 hover:text-white"
+            className="p-1 -ml-1 text-gray-400 hover:text-white flex-shrink-0"
           >
             <ChevronLeft className="w-6 h-6" />
           </Link>
+
+          {/* Axis selectors in header - mobile */}
+          {group.metrics.length > 0 && (
+            <div className="flex-1 flex items-center justify-center">
+              <h2 className="text-base font-bold inline-flex items-center gap-x-1">
+                {/* Y Axis Selector */}
+                <div className="relative inline-block">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowYAxisDropdown(!showYAxisDropdown);
+                      setShowXAxisDropdown(false);
+                    }}
+                    disabled={isYAxisLocked}
+                    className="inline-flex items-center hover:opacity-80 transition-opacity disabled:opacity-50 border-b-2 border-lime-500 min-w-[40px] justify-center pb-0.5"
+                  >
+                    <span className="text-white text-sm">
+                      {yMetricId ? group.metrics.find((m) => m.id === yMetricId)?.name : '\u00A0'}
+                    </span>
+                  </button>
+                  {showYAxisDropdown && (
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-40 bg-gray-800 rounded-lg shadow-xl border border-gray-700 z-50 py-1">
+                      <button
+                        onClick={() => { setYMetricId(''); setShowYAxisDropdown(false); }}
+                        className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-700 ${!yMetricId ? 'bg-lime-900/20 text-lime-300' : 'text-gray-300'}`}
+                      >
+                        None
+                      </button>
+                      {metricOptions.map((opt) => (
+                        <button
+                          key={opt.value}
+                          onClick={() => { setYMetricId(opt.value); setShowYAxisDropdown(false); }}
+                          className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-700 ${yMetricId === opt.value ? 'bg-lime-900/20 text-lime-300' : 'text-gray-300'}`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <span className="text-gray-500 font-normal mx-0.5">×</span>
+
+                {/* X Axis Selector */}
+                <div className="relative inline-block">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowXAxisDropdown(!showXAxisDropdown);
+                      setShowYAxisDropdown(false);
+                    }}
+                    disabled={isXAxisLocked}
+                    className="inline-flex items-center hover:opacity-80 transition-opacity disabled:opacity-50 border-b-2 border-lime-500 min-w-[40px] justify-center pb-0.5"
+                  >
+                    <span className="text-white text-sm">
+                      {xMetricId ? group.metrics.find((m) => m.id === xMetricId)?.name : '\u00A0'}
+                    </span>
+                  </button>
+                  {showXAxisDropdown && (
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-40 bg-gray-800 rounded-lg shadow-xl border border-gray-700 z-50 py-1">
+                      <button
+                        onClick={() => { setXMetricId(''); setShowXAxisDropdown(false); }}
+                        className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-700 ${!xMetricId ? 'bg-lime-900/20 text-lime-300' : 'text-gray-300'}`}
+                      >
+                        None
+                      </button>
+                      {metricOptions.map((opt) => (
+                        <button
+                          key={opt.value}
+                          onClick={() => { setXMetricId(opt.value); setShowXAxisDropdown(false); }}
+                          className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-700 ${xMetricId === opt.value ? 'bg-lime-900/20 text-lime-300' : 'text-gray-300'}`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </h2>
+            </div>
+          )}
 
           {/* Mobile captain menu (three-dot) */}
           {isCaptain && (
@@ -482,18 +563,99 @@ export default function GroupPage() {
           )}
         </div>
 
-        {/* Desktop header - back + captain buttons only */}
+        {/* Desktop header - back + axis selectors + captain buttons */}
         <div className="hidden sm:flex items-center justify-between mb-4">
           <Link
             href="/dashboard"
-            className="inline-flex items-center text-sm text-gray-400 hover:text-white"
+            className="inline-flex items-center text-sm text-gray-400 hover:text-white flex-shrink-0"
           >
             <ArrowLeft className="w-4 h-4 mr-1" />
-            Back to Dashboard
+            Back
           </Link>
 
+          {/* Axis selectors in header - desktop */}
+          {group.metrics.length > 0 && (
+            <div className="flex-1 flex items-center justify-center">
+              <h2 className="text-xl md:text-2xl lg:text-3xl font-bold inline-flex items-center gap-x-2">
+                {/* Y Axis Selector */}
+                <div className="relative inline-block">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowYAxisDropdown(!showYAxisDropdown);
+                      setShowXAxisDropdown(false);
+                    }}
+                    disabled={isYAxisLocked}
+                    className="inline-flex items-center hover:opacity-80 transition-opacity disabled:opacity-50 border-b-2 border-lime-500 min-w-[60px] sm:min-w-[80px] justify-center pb-1"
+                  >
+                    <span className="text-white">
+                      {yMetricId ? group.metrics.find((m) => m.id === yMetricId)?.name : '\u00A0'}
+                    </span>
+                  </button>
+                  {showYAxisDropdown && (
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 bg-gray-800 rounded-lg shadow-xl border border-gray-700 z-50 py-1">
+                      <button
+                        onClick={() => { setYMetricId(''); setShowYAxisDropdown(false); }}
+                        className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-700 ${!yMetricId ? 'bg-lime-900/20 text-lime-300' : 'text-gray-300'}`}
+                      >
+                        None
+                      </button>
+                      {metricOptions.map((opt) => (
+                        <button
+                          key={opt.value}
+                          onClick={() => { setYMetricId(opt.value); setShowYAxisDropdown(false); }}
+                          className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-700 ${yMetricId === opt.value ? 'bg-lime-900/20 text-lime-300' : 'text-gray-300'}`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <span className="text-gray-500 font-normal mx-1 sm:mx-2">×</span>
+
+                {/* X Axis Selector */}
+                <div className="relative inline-block">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowXAxisDropdown(!showXAxisDropdown);
+                      setShowYAxisDropdown(false);
+                    }}
+                    disabled={isXAxisLocked}
+                    className="inline-flex items-center hover:opacity-80 transition-opacity disabled:opacity-50 border-b-2 border-lime-500 min-w-[60px] sm:min-w-[80px] justify-center pb-1"
+                  >
+                    <span className="text-white">
+                      {xMetricId ? group.metrics.find((m) => m.id === xMetricId)?.name : '\u00A0'}
+                    </span>
+                  </button>
+                  {showXAxisDropdown && (
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 bg-gray-800 rounded-lg shadow-xl border border-gray-700 z-50 py-1">
+                      <button
+                        onClick={() => { setXMetricId(''); setShowXAxisDropdown(false); }}
+                        className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-700 ${!xMetricId ? 'bg-lime-900/20 text-lime-300' : 'text-gray-300'}`}
+                      >
+                        None
+                      </button>
+                      {metricOptions.map((opt) => (
+                        <button
+                          key={opt.value}
+                          onClick={() => { setXMetricId(opt.value); setShowXAxisDropdown(false); }}
+                          className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-700 ${xMetricId === opt.value ? 'bg-lime-900/20 text-lime-300' : 'text-gray-300'}`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </h2>
+            </div>
+          )}
+
           {/* Desktop captain buttons */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             {claimRequests.length > 0 && isCaptain && (
               <Button
                 variant="outline"
@@ -526,89 +688,8 @@ export default function GroupPage() {
             </div>
         </div>
 
-        {/* Axis selectors as title - always visible, plain white text with lime underline */}
-        {group.metrics.length > 0 && (
-          <div className="text-center mb-3">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold inline-flex items-center justify-center flex-wrap gap-x-2">
-              {/* Y Axis Selector */}
-              <div className="relative inline-block">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowYAxisDropdown(!showYAxisDropdown);
-                    setShowXAxisDropdown(false);
-                  }}
-                  disabled={isYAxisLocked}
-                  className="inline-flex items-center hover:opacity-80 transition-opacity disabled:opacity-50 border-b-2 border-lime-500 min-w-[60px] sm:min-w-[80px] justify-center pb-1"
-                >
-                  <span className="text-white">
-                    {yMetricId ? group.metrics.find((m) => m.id === yMetricId)?.name : '\u00A0'}
-                  </span>
-                </button>
-                {showYAxisDropdown && (
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 bg-gray-800 rounded-lg shadow-xl border border-gray-700 z-50 py-1">
-                    <button
-                      onClick={() => { setYMetricId(''); setShowYAxisDropdown(false); }}
-                      className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-700 ${!yMetricId ? 'bg-lime-900/20 text-lime-300' : 'text-gray-300'}`}
-                    >
-                      None
-                    </button>
-                    {metricOptions.map((opt) => (
-                      <button
-                        key={opt.value}
-                        onClick={() => { setYMetricId(opt.value); setShowYAxisDropdown(false); }}
-                        className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-700 ${yMetricId === opt.value ? 'bg-lime-900/20 text-lime-300' : 'text-gray-300'}`}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <span className="text-gray-500 font-normal mx-1 sm:mx-2">×</span>
-
-              {/* X Axis Selector */}
-              <div className="relative inline-block">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowXAxisDropdown(!showXAxisDropdown);
-                    setShowYAxisDropdown(false);
-                  }}
-                  disabled={isXAxisLocked}
-                  className="inline-flex items-center hover:opacity-80 transition-opacity disabled:opacity-50 border-b-2 border-lime-500 min-w-[60px] sm:min-w-[80px] justify-center pb-1"
-                >
-                  <span className="text-white">
-                    {xMetricId ? group.metrics.find((m) => m.id === xMetricId)?.name : '\u00A0'}
-                  </span>
-                </button>
-                {showXAxisDropdown && (
-                  <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 bg-gray-800 rounded-lg shadow-xl border border-gray-700 z-50 py-1">
-                    <button
-                      onClick={() => { setXMetricId(''); setShowXAxisDropdown(false); }}
-                      className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-700 ${!xMetricId ? 'bg-lime-900/20 text-lime-300' : 'text-gray-300'}`}
-                    >
-                      None
-                    </button>
-                    {metricOptions.map((opt) => (
-                      <button
-                        key={opt.value}
-                        onClick={() => { setXMetricId(opt.value); setShowXAxisDropdown(false); }}
-                        className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-700 ${xMetricId === opt.value ? 'bg-lime-900/20 text-lime-300' : 'text-gray-300'}`}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </h2>
-          </div>
-        )}
-
         {/* Control bar tabs - rounded, new selection style */}
-        <div className="bg-gray-800 rounded-t-xl -mx-4 sm:mx-0 p-1">
+        <div className="bg-gray-900 rounded-t-xl -mx-4 sm:mx-0 p-1 border border-gray-700/50">
           <div className="flex w-full gap-1">
             <button
               onClick={() => setViewMode('graph')}
@@ -650,7 +731,7 @@ export default function GroupPage() {
 
         {/* Content - attached to tabs above */}
         {viewMode === 'graph' && (
-          <div className="flex-1 flex flex-col -mx-4 sm:mx-0 bg-gray-800 rounded-b-xl">
+          <div className="flex-1 flex flex-col -mx-4 sm:mx-0 bg-gray-900 rounded-b-xl border-x border-b border-gray-700/50">
             <div className="flex-1 w-full p-2 sm:p-6 sm:pl-12 sm:pb-8">
               <div className="w-full h-full min-h-[300px] sm:min-h-0 sm:aspect-[4/3] lg:aspect-[16/10] sm:max-h-[70vh]">
                 <MemberGraph
@@ -672,7 +753,7 @@ export default function GroupPage() {
         )}
 
         {viewMode === 'table' && (
-          <div className="bg-gray-800 rounded-b-xl -mx-4 sm:mx-0 p-2 sm:p-6 overflow-auto max-h-[calc(100vh-200px)]">
+          <div className="bg-gray-900 rounded-b-xl -mx-4 sm:mx-0 p-2 sm:p-6 overflow-auto max-h-[calc(100vh-200px)] border-x border-b border-gray-700/50">
             <DataTable
               members={members}
               metrics={group.metrics}
@@ -704,7 +785,7 @@ export default function GroupPage() {
         )}
 
         {viewMode === 'rate' && canRate && (
-          <div className="bg-gray-800 rounded-b-xl -mx-4 sm:mx-0 p-4 sm:p-6">
+          <div className="bg-gray-900 rounded-b-xl -mx-4 sm:mx-0 p-4 sm:p-6 border-x border-b border-gray-700/50">
             <RatingForm
               members={members}
               metrics={group.metrics}
