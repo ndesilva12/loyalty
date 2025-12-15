@@ -477,9 +477,28 @@ export default function DataTable({
                           className="w-full h-2 accent-lime-500"
                         />
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-white">
-                            {metric.prefix}{editValue}{metric.suffix}
-                          </span>
+                          <span className="text-gray-400 text-xs">{metric.prefix}</span>
+                          <input
+                            type="number"
+                            min={metric.minValue}
+                            max={metric.maxValue}
+                            value={editValue}
+                            onChange={(e) => {
+                              const val = Number(e.target.value);
+                              const clampedVal = Math.min(Math.max(val, metric.minValue), metric.maxValue);
+                              handleSliderChange(clampedVal);
+                            }}
+                            onBlur={(e) => {
+                              // Clamp value on blur in case user typed outside range
+                              const val = Number(e.target.value);
+                              const clampedVal = Math.min(Math.max(val, metric.minValue), metric.maxValue);
+                              if (val !== clampedVal) {
+                                handleSliderChange(clampedVal);
+                              }
+                            }}
+                            className="w-16 px-2 py-1 text-sm font-medium text-white text-center bg-gray-700 border border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-lime-500"
+                          />
+                          <span className="text-gray-400 text-xs">{metric.suffix}</span>
                           {saving && (
                             <div className="w-3 h-3 border-2 border-lime-500 border-t-transparent rounded-full animate-spin" />
                           )}

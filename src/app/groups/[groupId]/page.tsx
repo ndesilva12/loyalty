@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
 import Link from 'next/link';
 import {
@@ -29,11 +29,12 @@ import MemberGraph from '@/components/graph/MemberGraph';
 import DataTable from '@/components/graph/DataTable';
 import AddMemberForm from '@/components/groups/AddMemberForm';
 import RatingForm from '@/components/groups/RatingForm';
-import { Group, GroupMember, Rating, AggregatedScore, ClaimRequest, Metric, MetricPrefix, MetricSuffix } from '@/types';
+import { Group, GroupMember, Rating, AggregatedScore, ClaimRequest, Metric, MetricPrefix, MetricSuffix, PendingItem } from '@/types';
 import {
   subscribeToGroup,
   subscribeToMembers,
   subscribeToRatings,
+  subscribeToPendingItems,
   addMember,
   createInvitation,
   submitRating,
@@ -48,6 +49,8 @@ import {
   createClaimToken,
   addCoCaptain,
   removeCoCaptain,
+  submitPendingItem,
+  respondToPendingItem,
 } from '@/lib/firestore';
 import Input from '@/components/ui/Input';
 
@@ -56,6 +59,7 @@ type ViewMode = 'graph' | 'table' | 'rate';
 export default function GroupPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, isLoaded } = useUser();
   const groupId = params.groupId as string;
 
@@ -63,11 +67,17 @@ export default function GroupPage() {
   const [members, setMembers] = useState<GroupMember[]>([]);
   const [ratings, setRatings] = useState<Rating[]>([]);
   const [claimRequests, setClaimRequests] = useState<ClaimRequest[]>([]);
+  const [pendingItems, setPendingItems] = useState<PendingItem[]>([]);
   const [scores, setScores] = useState<AggregatedScore[]>([]);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<ViewMode>('graph');
+  // Initialize viewMode from URL params, default to 'graph'
+  const initialTab = searchParams.get('tab');
+  const [viewMode, setViewMode] = useState<ViewMode>(
+    (initialTab === 'table' || initialTab === 'rate' || initialTab === 'graph') ? initialTab : 'graph'
+  );
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [showClaimRequestsModal, setShowClaimRequestsModal] = useState(false);
+  const [showPendingItemsModal, setShowPendingItemsModal] = useState(false);
   const [showMetricsModal, setShowMetricsModal] = useState(false);
   const [showGroupSettingsModal, setShowGroupSettingsModal] = useState(false);
   const [editingMetrics, setEditingMetrics] = useState<Metric[]>([]);
@@ -98,6 +108,16 @@ export default function GroupPage() {
       return () => document.removeEventListener('click', handleClickOutside);
     }
   }, [showYAxisDropdown, showXAxisDropdown]);
+
+  // Update URL when viewMode changes (preserves tab state for back navigation)
+  useEffect(() => {
+    const currentTab = searchParams.get('tab');
+    if (viewMode !== currentTab) {
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', viewMode);
+      window.history.replaceState({}, '', url.toString());
+    }
+  }, [viewMode, searchParams]);
 
   // Use captainId with backward compatibility for creatorId
   // Also check if user is a co-captain
@@ -136,11 +156,13 @@ export default function GroupPage() {
 
     const unsubscribeMembers = subscribeToMembers(groupId, setMembers);
     const unsubscribeRatings = subscribeToRatings(groupId, setRatings);
+    const unsubscribePendingItems = subscribeToPendingItems(groupId, setPendingItems);
 
     return () => {
       unsubscribeGroup();
       unsubscribeMembers();
       unsubscribeRatings();
+      unsubscribePendingItems();
     };
   }, [groupId]);
 
@@ -191,28 +213,42 @@ export default function GroupPage() {
   const handleAddMember = async (data: { email: string | null; name: string; placeholderImageUrl: string; description: string | null }) => {
     if (!user || !group) return;
 
-    const member = await addMember(
-      groupId,
-      data.email,
-      data.name,
-      data.placeholderImageUrl || null,
-      null, // clerkId
-      'placeholder', // status
-      null, // imageUrl
-      false, // isCaptain
-      data.description
-    );
-
-    // Only create invitation if email is provided
-    if (data.email) {
-      await createInvitation(
+    if (isCaptain) {
+      // Captain can add items directly
+      const member = await addMember(
         groupId,
-        group.name,
         data.email,
-        member.id,
+        data.name,
+        data.placeholderImageUrl || null,
+        null, // clerkId
+        'placeholder', // status
+        null, // imageUrl
+        false, // isCaptain
+        data.description
+      );
+
+      // Only create invitation if email is provided
+      if (data.email) {
+        await createInvitation(
+          groupId,
+          group.name,
+          data.email,
+          member.id,
+          user.id,
+          user.fullName || user.emailAddresses[0]?.emailAddress || 'Unknown'
+        );
+      }
+    } else {
+      // Non-captain submits item for approval
+      await submitPendingItem(
+        groupId,
+        data.name,
+        data.description,
+        data.placeholderImageUrl || null,
         user.id,
         user.fullName || user.emailAddresses[0]?.emailAddress || 'Unknown'
       );
+      alert('Your item has been submitted for captain approval.');
     }
 
     setShowAddMemberModal(false);
@@ -377,6 +413,17 @@ export default function GroupPage() {
     }
   };
 
+  // Handle pending item approval/rejection
+  const handleApprovePendingItem = async (item: PendingItem) => {
+    if (!user) return;
+    await respondToPendingItem(item.id, true, user.id, groupId);
+  };
+
+  const handleRejectPendingItem = async (item: PendingItem) => {
+    if (!user) return;
+    await respondToPendingItem(item.id, false, user.id, groupId);
+  };
+
   // Get visible members for the graph
   const visibleMembers = members.filter((m) => m.visibleInGraph);
 
@@ -511,15 +558,15 @@ export default function GroupPage() {
             </div>
           )}
 
-          {/* Mobile captain menu (three-dot) */}
-          {isCaptain && (
+          {/* Mobile menu (three-dot) - shown for all members */}
+          {canRate && (
             <div className="relative">
               <button
                 onClick={() => setShowMobileCaptainMenu(!showMobileCaptainMenu)}
                 className="p-2 text-gray-400 hover:bg-gray-800 rounded-lg"
               >
                 <MoreVertical className="w-5 h-5" />
-                {claimRequests.length > 0 && (
+                {isCaptain && (claimRequests.length > 0 || pendingItems.length > 0) && (
                   <span className="absolute top-1 right-1 w-2 h-2 bg-lime-500 rounded-full" />
                 )}
               </button>
@@ -527,41 +574,62 @@ export default function GroupPage() {
               {showMobileCaptainMenu && (
                 <div className="absolute right-0 top-full mt-1 w-48 bg-gray-800 rounded-lg shadow-lg border border-gray-700 z-30">
                   <div className="py-1">
-                    {claimRequests.length > 0 && (
-                      <button
-                        onClick={() => {
-                          setShowClaimRequestsModal(true);
-                          setShowMobileCaptainMenu(false);
-                        }}
-                        className="w-full flex items-center gap-3 px-4 py-2 text-sm text-left hover:bg-gray-700"
-                      >
-                        <Users className="w-4 h-4" />
-                        Claims
-                        <span className="ml-auto bg-lime-500 text-white text-xs px-1.5 py-0.5 rounded-full">
-                          {claimRequests.length}
-                        </span>
-                      </button>
+                    {/* Captain-only options */}
+                    {isCaptain && (
+                      <>
+                        {claimRequests.length > 0 && (
+                          <button
+                            onClick={() => {
+                              setShowClaimRequestsModal(true);
+                              setShowMobileCaptainMenu(false);
+                            }}
+                            className="w-full flex items-center gap-3 px-4 py-2 text-sm text-left hover:bg-gray-700"
+                          >
+                            <Users className="w-4 h-4" />
+                            Claims
+                            <span className="ml-auto bg-lime-500 text-white text-xs px-1.5 py-0.5 rounded-full">
+                              {claimRequests.length}
+                            </span>
+                          </button>
+                        )}
+                        {pendingItems.length > 0 && (
+                          <button
+                            onClick={() => {
+                              setShowPendingItemsModal(true);
+                              setShowMobileCaptainMenu(false);
+                            }}
+                            className="w-full flex items-center gap-3 px-4 py-2 text-sm text-left hover:bg-gray-700"
+                          >
+                            <UserPlus className="w-4 h-4" />
+                            Pending
+                            <span className="ml-auto bg-lime-500 text-white text-xs px-1.5 py-0.5 rounded-full">
+                              {pendingItems.length}
+                            </span>
+                          </button>
+                        )}
+                        <button
+                          onClick={() => {
+                            handleOpenGroupSettings();
+                            setShowMobileCaptainMenu(false);
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-2 text-sm text-left hover:bg-gray-700"
+                        >
+                          <Settings2 className="w-4 h-4" />
+                          Settings
+                        </button>
+                        <button
+                          onClick={() => {
+                            handleOpenMetricsModal();
+                            setShowMobileCaptainMenu(false);
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-2 text-sm text-left hover:bg-gray-700"
+                        >
+                          <Settings className="w-4 h-4" />
+                          Metrics
+                        </button>
+                      </>
                     )}
-                    <button
-                      onClick={() => {
-                        handleOpenGroupSettings();
-                        setShowMobileCaptainMenu(false);
-                      }}
-                      className="w-full flex items-center gap-3 px-4 py-2 text-sm text-left hover:bg-gray-700"
-                    >
-                      <Settings2 className="w-4 h-4" />
-                      Settings
-                    </button>
-                    <button
-                      onClick={() => {
-                        handleOpenMetricsModal();
-                        setShowMobileCaptainMenu(false);
-                      }}
-                      className="w-full flex items-center gap-3 px-4 py-2 text-sm text-left hover:bg-gray-700"
-                    >
-                      <Settings className="w-4 h-4" />
-                      Metrics
-                    </button>
+                    {/* Add button - available to all members */}
                     <button
                       onClick={() => {
                         setShowAddMemberModal(true);
@@ -570,7 +638,7 @@ export default function GroupPage() {
                       className="w-full flex items-center gap-3 px-4 py-2 text-sm text-left hover:bg-gray-700"
                     >
                       <UserPlus className="w-4 h-4" />
-                      Add
+                      {isCaptain ? 'Add' : 'Suggest Item'}
                     </button>
                   </div>
                 </div>
@@ -670,38 +738,55 @@ export default function GroupPage() {
             </div>
           )}
 
-          {/* Desktop captain buttons */}
+          {/* Desktop buttons */}
           <div className="flex items-center gap-2 flex-shrink-0 z-10">
-            {claimRequests.length > 0 && isCaptain && (
-              <Button
-                variant="outline"
-                onClick={() => setShowClaimRequestsModal(true)}
-                className="relative"
-              >
-                  <Users className="w-4 h-4 mr-2" />
-                  Claims
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-lime-500 text-white text-xs rounded-full flex items-center justify-center">
-                    {claimRequests.length}
-                  </span>
-                </Button>
-              )}
-              {isCaptain && (
-                <>
-                  <Button variant="outline" onClick={handleOpenGroupSettings}>
-                    <Settings2 className="w-4 h-4 mr-2" />
-                    Settings
+            {/* Captain-only buttons */}
+            {isCaptain && (
+              <>
+                {claimRequests.length > 0 && (
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowClaimRequestsModal(true)}
+                    className="relative"
+                  >
+                    <Users className="w-4 h-4 mr-2" />
+                    Claims
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-lime-500 text-white text-xs rounded-full flex items-center justify-center">
+                      {claimRequests.length}
+                    </span>
                   </Button>
-                  <Button variant="outline" onClick={handleOpenMetricsModal}>
-                    <Settings className="w-4 h-4 mr-2" />
-                    Metrics
-                  </Button>
-                  <Button variant="secondary" onClick={() => setShowAddMemberModal(true)}>
+                )}
+                {pendingItems.length > 0 && (
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowPendingItemsModal(true)}
+                    className="relative"
+                  >
                     <UserPlus className="w-4 h-4 mr-2" />
-                    Add
+                    Pending
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-lime-500 text-white text-xs rounded-full flex items-center justify-center">
+                      {pendingItems.length}
+                    </span>
                   </Button>
-                </>
-              )}
-            </div>
+                )}
+                <Button variant="outline" onClick={handleOpenGroupSettings}>
+                  <Settings2 className="w-4 h-4 mr-2" />
+                  Settings
+                </Button>
+                <Button variant="outline" onClick={handleOpenMetricsModal}>
+                  <Settings className="w-4 h-4 mr-2" />
+                  Metrics
+                </Button>
+              </>
+            )}
+            {/* Add/Suggest button - available to all members */}
+            {canRate && (
+              <Button variant="secondary" onClick={() => setShowAddMemberModal(true)}>
+                <UserPlus className="w-4 h-4 mr-2" />
+                {isCaptain ? 'Add' : 'Suggest'}
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Control bar tabs - rounded, new selection style */}
@@ -842,7 +927,7 @@ export default function GroupPage() {
       <Modal
         isOpen={showAddMemberModal}
         onClose={() => setShowAddMemberModal(false)}
-        title="Add Item"
+        title={isCaptain ? 'Add Item' : 'Suggest Item'}
       >
         <AddMemberForm
           onSubmit={handleAddMember}
@@ -895,6 +980,63 @@ export default function GroupPage() {
                 </div>
               );
             })
+          )}
+        </div>
+      </Modal>
+
+      {/* Pending Items Modal */}
+      <Modal
+        isOpen={showPendingItemsModal}
+        onClose={() => setShowPendingItemsModal(false)}
+        title="Pending Item Suggestions"
+      >
+        <div className="space-y-4">
+          {pendingItems.length === 0 ? (
+            <p className="text-gray-500 dark:text-gray-400 text-center py-4">
+              No pending item suggestions
+            </p>
+          ) : (
+            pendingItems.map((item) => (
+              <div
+                key={item.id}
+                className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg"
+              >
+                <div className="flex items-center gap-3">
+                  {item.imageUrl && (
+                    <img
+                      src={item.imageUrl}
+                      alt={item.name}
+                      className="w-10 h-10 rounded-full object-cover"
+                    />
+                  )}
+                  <div>
+                    <p className="font-medium text-gray-900 dark:text-white">
+                      {item.name}
+                    </p>
+                    {item.description && (
+                      <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-1">
+                        {item.description}
+                      </p>
+                    )}
+                    <p className="text-xs text-gray-500 dark:text-gray-500">
+                      Suggested by {item.submittedByName} on {item.createdAt.toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleRejectPendingItem(item)}
+                  >
+                    Reject
+                  </Button>
+                  <Button size="sm" onClick={() => handleApprovePendingItem(item)}>
+                    Approve
+                  </Button>
+                </div>
+              </div>
+            ))
           )}
         </div>
       </Modal>

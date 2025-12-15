@@ -122,6 +122,21 @@ export interface ClaimToken {
   claimedBy: string | null; // Clerk ID of who claimed it
 }
 
+// Pending item submitted by non-captain, awaiting approval
+export interface PendingItem {
+  id: string;
+  groupId: string;
+  name: string;
+  description: string | null;
+  imageUrl: string | null;
+  submittedBy: string; // Clerk ID of who submitted it
+  submittedByName: string; // Name of submitter for display
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: Date;
+  respondedAt: Date | null;
+  respondedBy: string | null; // Clerk ID of captain who responded
+}
+
 // Graph visualization types
 export interface PlottedMember {
   member: GroupMember;

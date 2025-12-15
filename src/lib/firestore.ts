@@ -26,6 +26,7 @@ import {
   ClaimRequest,
   ClaimToken,
   Metric,
+  PendingItem,
   createDefaultMetric,
 } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
@@ -37,6 +38,7 @@ const ratingsCollection = collection(db, 'ratings');
 const invitationsCollection = collection(db, 'invitations');
 const claimRequestsCollection = collection(db, 'claimRequests');
 const claimTokensCollection = collection(db, 'claimTokens');
+const pendingItemsCollection = collection(db, 'pendingItems');
 
 // Helper to convert Firestore timestamps
 const convertTimestamp = (timestamp: Timestamp | Date | null): Date => {
@@ -887,5 +889,120 @@ export async function claimProfile(
 export async function invalidateClaimToken(tokenId: string): Promise<void> {
   await updateDoc(doc(claimTokensCollection, tokenId), {
     status: 'expired',
+  });
+}
+
+// ============ PENDING ITEM OPERATIONS ============
+
+export async function submitPendingItem(
+  groupId: string,
+  name: string,
+  description: string | null,
+  imageUrl: string | null,
+  submittedBy: string,
+  submittedByName: string
+): Promise<PendingItem> {
+  const itemId = uuidv4();
+  const now = new Date();
+
+  const pendingItem: PendingItem = {
+    id: itemId,
+    groupId,
+    name,
+    description,
+    imageUrl,
+    submittedBy,
+    submittedByName,
+    status: 'pending',
+    createdAt: now,
+    respondedAt: null,
+    respondedBy: null,
+  };
+
+  await setDoc(doc(pendingItemsCollection, itemId), {
+    ...pendingItem,
+    createdAt: Timestamp.fromDate(now),
+  });
+
+  return pendingItem;
+}
+
+export async function getPendingItems(groupId: string): Promise<PendingItem[]> {
+  const q = query(
+    pendingItemsCollection,
+    where('groupId', '==', groupId),
+    where('status', '==', 'pending')
+  );
+  const docs = await getDocs(q);
+
+  return docs.docs.map((docSnap) => {
+    const data = docSnap.data();
+    return {
+      ...data,
+      id: docSnap.id,
+      createdAt: convertTimestamp(data.createdAt),
+      respondedAt: data.respondedAt ? convertTimestamp(data.respondedAt) : null,
+    } as PendingItem;
+  });
+}
+
+export async function respondToPendingItem(
+  itemId: string,
+  approve: boolean,
+  respondedBy: string,
+  groupId: string
+): Promise<GroupMember | null> {
+  const itemDoc = await getDoc(doc(pendingItemsCollection, itemId));
+  if (!itemDoc.exists()) throw new Error('Pending item not found');
+
+  const itemData = itemDoc.data() as PendingItem;
+  const now = new Date();
+
+  // Update pending item status
+  await updateDoc(doc(pendingItemsCollection, itemId), {
+    status: approve ? 'approved' : 'rejected',
+    respondedAt: Timestamp.fromDate(now),
+    respondedBy,
+  });
+
+  if (approve) {
+    // Create actual member from pending item
+    const member = await addMember(
+      groupId,
+      null, // email
+      itemData.name,
+      itemData.imageUrl, // placeholderImageUrl
+      null, // clerkId
+      'placeholder', // status
+      null, // imageUrl
+      false, // isCaptain
+      itemData.description
+    );
+    return member;
+  }
+
+  return null;
+}
+
+export function subscribeToPendingItems(
+  groupId: string,
+  callback: (items: PendingItem[]) => void
+): () => void {
+  const q = query(
+    pendingItemsCollection,
+    where('groupId', '==', groupId),
+    where('status', '==', 'pending')
+  );
+  return onSnapshot(q, (snapshot) => {
+    const items = snapshot.docs.map((docSnap) => {
+      const data = docSnap.data();
+      return {
+        ...data,
+        id: docSnap.id,
+        createdAt: convertTimestamp(data.createdAt),
+        respondedAt: data.respondedAt ? convertTimestamp(data.respondedAt) : null,
+      } as PendingItem;
+    });
+    callback(items);
   });
 }
