@@ -497,7 +497,7 @@ export default function GroupPage() {
                     </span>
                   </button>
                   {showYAxisDropdown && (
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-40 bg-gray-800 rounded-lg shadow-xl border border-gray-700 z-50 py-1">
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-40 bg-gray-800 rounded-lg shadow-xl border border-gray-700 z-[100] py-1">
                       <button
                         onClick={() => { setYMetricId(''); setShowYAxisDropdown(false); }}
                         className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-700 ${!yMetricId ? 'bg-lime-900/20 text-lime-300' : 'text-gray-300'}`}
@@ -535,7 +535,7 @@ export default function GroupPage() {
                     </span>
                   </button>
                   {showXAxisDropdown && (
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-40 bg-gray-800 rounded-lg shadow-xl border border-gray-700 z-50 py-1">
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-40 bg-gray-800 rounded-lg shadow-xl border border-gray-700 z-[100] py-1">
                       <button
                         onClick={() => { setXMetricId(''); setShowXAxisDropdown(false); }}
                         className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-700 ${!xMetricId ? 'bg-lime-900/20 text-lime-300' : 'text-gray-300'}`}
@@ -677,7 +677,7 @@ export default function GroupPage() {
                     </span>
                   </button>
                   {showYAxisDropdown && (
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 bg-gray-800 rounded-lg shadow-xl border border-gray-700 z-50 py-1">
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 bg-gray-800 rounded-lg shadow-xl border border-gray-700 z-[100] py-1">
                       <button
                         onClick={() => { setYMetricId(''); setShowYAxisDropdown(false); }}
                         className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-700 ${!yMetricId ? 'bg-lime-900/20 text-lime-300' : 'text-gray-300'}`}
@@ -715,7 +715,7 @@ export default function GroupPage() {
                     </span>
                   </button>
                   {showXAxisDropdown && (
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 bg-gray-800 rounded-lg shadow-xl border border-gray-700 z-50 py-1">
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-48 bg-gray-800 rounded-lg shadow-xl border border-gray-700 z-[100] py-1">
                       <button
                         onClick={() => { setXMetricId(''); setShowXAxisDropdown(false); }}
                         className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-700 ${!xMetricId ? 'bg-lime-900/20 text-lime-300' : 'text-gray-300'}`}
