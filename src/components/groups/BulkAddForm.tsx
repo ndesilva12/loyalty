@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Type, Globe, User, FileText, AlertCircle } from 'lucide-react';
+import { Type, Globe, User, FileText, AlertCircle, Loader2 } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { ObjectType } from '@/types';
 
@@ -19,29 +19,37 @@ interface BulkAddFormProps {
   itemCategories?: string[];
 }
 
+interface ParsedItem {
+  name: string;
+  description?: string;
+  image?: string;
+  linkUrl?: string;
+}
+
 export default function BulkAddForm({ onSubmit, onCancel, itemCategories = [] }: BulkAddFormProps) {
   const [itemType, setItemType] = useState<ObjectType | null>(null);
   const [itemCategory, setItemCategory] = useState<string | null>(null);
   const [bulkText, setBulkText] = useState('');
   const [loading, setLoading] = useState(false);
+  const [fetchingMetadata, setFetchingMetadata] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [parsePreview, setParsePreview] = useState<Array<{ name: string; description?: string; image?: string; linkUrl?: string }>>([]);
+  const [parsePreview, setParsePreview] = useState<ParsedItem[]>([]);
 
   const exampleText = {
-    text: `Apple, A popular fruit, https://example.com/apple.jpg
+    text: `Apple, A popular fruit
 Banana, Yellow tropical fruit
 Orange`,
-    link: `https://example.com/page1, My Page Title, https://example.com/thumb1.jpg
-https://example.com/page2, Another Page
-https://example.com/page3`,
-    user: `John Doe, Engineering Lead, https://example.com/john.jpg
+    link: `https://www.espn.com/nba/player/_/id/1966/lebron-james
+https://www.espn.com/nba/player/_/id/3975/stephen-curry, Steph Curry
+https://www.espn.com/nba/player/_/id/6583/kevin-durant, KD, Brooklyn Nets forward`,
+    user: `John Doe, Engineering Lead
 Jane Smith, Product Manager
 Bob Wilson`,
   };
 
-  const parseInput = (text: string, type: ObjectType) => {
+  const parseInput = (text: string, type: ObjectType): ParsedItem[] => {
     const lines = text.split('\n').filter(line => line.trim());
-    const parsed: Array<{ name: string; description?: string; image?: string; linkUrl?: string }> = [];
+    const parsed: ParsedItem[] = [];
 
     for (const line of lines) {
       // Split by comma or semicolon
@@ -50,17 +58,16 @@ Bob Wilson`,
       if (parts.length === 0) continue;
 
       if (type === 'link') {
-        // For links: URL, name (optional), image (optional)
+        // For links: URL, name (optional), description (optional)
         const linkUrl = parts[0];
-        const name = parts[1] || linkUrl;
-        const image = parts[2] || '';
-        parsed.push({ name, linkUrl, image, description: '' });
+        const name = parts[1] || ''; // Will be fetched if empty
+        const description = parts[2] || ''; // Will be fetched if empty
+        parsed.push({ name: name || linkUrl, linkUrl, description, image: '' });
       } else {
-        // For text/user: name, description (optional), image (optional)
+        // For text/user: name, description (optional)
         const name = parts[0];
         const description = parts[1] || '';
-        const image = parts[2] || '';
-        parsed.push({ name, description, image });
+        parsed.push({ name, description });
       }
     }
 
@@ -85,6 +92,19 @@ Bob Wilson`,
     }
   };
 
+  // Fetch metadata for a single URL
+  const fetchLinkMetadata = async (url: string): Promise<{ title?: string; description?: string; image?: string }> => {
+    try {
+      const response = await fetch(`/api/fetch-metadata?url=${encodeURIComponent(url)}`);
+      if (response.ok) {
+        return await response.json();
+      }
+    } catch (err) {
+      console.error('Failed to fetch metadata for', url, err);
+    }
+    return {};
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -106,8 +126,39 @@ Bob Wilson`,
     }
 
     setLoading(true);
+
     try {
-      const items = parsed.map(item => ({
+      let finalItems = parsed;
+
+      // For link type, fetch metadata for items without name/description
+      if (itemType === 'link') {
+        setFetchingMetadata(true);
+        const itemsWithMetadata = await Promise.all(
+          parsed.map(async (item) => {
+            if (item.linkUrl) {
+              // Check if we need to fetch metadata (no user-provided name or it's just the URL)
+              const needsName = !item.name || item.name === item.linkUrl;
+              const needsDescription = !item.description;
+              const needsImage = !item.image;
+
+              if (needsName || needsDescription || needsImage) {
+                const metadata = await fetchLinkMetadata(item.linkUrl);
+                return {
+                  ...item,
+                  name: needsName && metadata.title ? metadata.title : item.name,
+                  description: needsDescription && metadata.description ? metadata.description : item.description,
+                  image: needsImage && metadata.image ? metadata.image : item.image,
+                };
+              }
+            }
+            return item;
+          })
+        );
+        finalItems = itemsWithMetadata;
+        setFetchingMetadata(false);
+      }
+
+      const items = finalItems.map(item => ({
         email: null,
         name: item.name,
         placeholderImageUrl: item.image || '',
@@ -122,6 +173,7 @@ Bob Wilson`,
       setError(err instanceof Error ? err.message : 'Failed to add items');
     } finally {
       setLoading(false);
+      setFetchingMetadata(false);
     }
   };
 
@@ -227,9 +279,14 @@ Bob Wilson`,
               Format: One item per line
             </div>
             {itemType === 'link' ? (
-              <p>URL, Name (optional), Image URL (optional)</p>
+              <>
+                <p>URL, Title (optional), Description (optional)</p>
+                <p className="mt-1 text-lime-400/70">
+                  Title, description & image are auto-fetched from links when not provided
+                </p>
+              </>
             ) : (
-              <p>Name, Description (optional), Image URL (optional)</p>
+              <p>Name, Description (optional)</p>
             )}
             <p className="mt-1 text-gray-500">
               Separate fields with comma (,) or semicolon (;)
@@ -273,8 +330,8 @@ Bob Wilson`,
                     {item.description && (
                       <span className="text-gray-500 truncate max-w-[100px]">{item.description}</span>
                     )}
-                    {item.image && (
-                      <span className="text-lime-400/60 text-[10px]">+img</span>
+                    {itemType === 'link' && item.name === item.linkUrl && (
+                      <span className="text-lime-400/60 text-[10px]">auto</span>
                     )}
                   </div>
                 ))}
@@ -294,7 +351,14 @@ Bob Wilson`,
           disabled={!itemType || !bulkText.trim()}
           className="flex-1"
         >
-          Add {parsePreview.length > 0 ? `${parsePreview.length} Items` : 'Items'}
+          {fetchingMetadata ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Fetching...
+            </>
+          ) : (
+            `Add ${parsePreview.length > 0 ? `${parsePreview.length} Items` : 'Items'}`
+          )}
         </Button>
       </div>
     </form>
