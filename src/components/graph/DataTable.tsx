@@ -209,7 +209,7 @@ export default function DataTable({
           left = 16;
         }
         setDropdownPosition({
-          top: rect.bottom + window.scrollY + 4,
+          top: rect.bottom + 4,
           left: left,
         });
       }
@@ -592,6 +592,24 @@ export default function DataTable({
                   >
                     <Pencil className="w-4 h-4" />
                     Edit Object
+                  </button>
+                )}
+
+                {/* Upload image */}
+                {onUploadObjectImage && (
+                  <button
+                    onClick={() => {
+                      if (fileInputRef.current) {
+                        fileInputRef.current.dataset.objectId = obj.id;
+                        fileInputRef.current.click();
+                      }
+                      setShowObjectActions(null);
+                      setDropdownPosition(null);
+                    }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-gray-700 rounded"
+                  >
+                    <Camera className="w-4 h-4" />
+                    Upload Image
                   </button>
                 )}
 

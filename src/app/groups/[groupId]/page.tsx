@@ -524,7 +524,7 @@ export default function GroupPage() {
   const visibleObjects = objects.filter((obj) => obj.visibleInGraph);
 
   // Metric options for selectors
-  const metricOptions = group?.metrics.map((m) => ({ value: m.id, label: m.name })) || [];
+  const metricOptions = group?.metrics.map((m) => ({ value: m.id, label: m.name.toLowerCase() })) || [];
 
   if (loading || !isLoaded) {
     return (
@@ -648,7 +648,7 @@ export default function GroupPage() {
                     className="inline-flex items-center hover:opacity-80 transition-opacity disabled:opacity-50 border-b-2 border-lime-500 min-w-[50px] justify-center pb-0.5"
                   >
                     <span className="text-white text-lg">
-                      {yMetricId ? group.metrics.find((m) => m.id === yMetricId)?.name : '\u00A0'}
+                      {yMetricId ? group.metrics.find((m) => m.id === yMetricId)?.name.toLowerCase() : '\u00A0'}
                     </span>
                   </button>
                   {showYAxisDropdown && (
@@ -657,7 +657,7 @@ export default function GroupPage() {
                         onClick={() => { setYMetricId(''); setShowYAxisDropdown(false); }}
                         className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-700 ${!yMetricId ? 'bg-lime-900/20 text-lime-300' : 'text-gray-300'}`}
                       >
-                        None
+                        none
                       </button>
                       {metricOptions.map((opt) => (
                         <button
@@ -686,7 +686,7 @@ export default function GroupPage() {
                     className="inline-flex items-center hover:opacity-80 transition-opacity disabled:opacity-50 border-b-2 border-lime-500 min-w-[50px] justify-center pb-0.5"
                   >
                     <span className="text-white text-lg">
-                      {xMetricId ? group.metrics.find((m) => m.id === xMetricId)?.name : '\u00A0'}
+                      {xMetricId ? group.metrics.find((m) => m.id === xMetricId)?.name.toLowerCase() : '\u00A0'}
                     </span>
                   </button>
                   {showXAxisDropdown && (
@@ -695,7 +695,7 @@ export default function GroupPage() {
                         onClick={() => { setXMetricId(''); setShowXAxisDropdown(false); }}
                         className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-700 ${!xMetricId ? 'bg-lime-900/20 text-lime-300' : 'text-gray-300'}`}
                       >
-                        None
+                        none
                       </button>
                       {metricOptions.map((opt) => (
                         <button
@@ -828,7 +828,7 @@ export default function GroupPage() {
                     className="inline-flex items-center hover:opacity-80 transition-opacity disabled:opacity-50 border-b-2 border-lime-500 min-w-[60px] sm:min-w-[80px] justify-center pb-1"
                   >
                     <span className="text-white">
-                      {yMetricId ? group.metrics.find((m) => m.id === yMetricId)?.name : '\u00A0'}
+                      {yMetricId ? group.metrics.find((m) => m.id === yMetricId)?.name.toLowerCase() : '\u00A0'}
                     </span>
                   </button>
                   {showYAxisDropdown && (
@@ -837,7 +837,7 @@ export default function GroupPage() {
                         onClick={() => { setYMetricId(''); setShowYAxisDropdown(false); }}
                         className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-700 ${!yMetricId ? 'bg-lime-900/20 text-lime-300' : 'text-gray-300'}`}
                       >
-                        None
+                        none
                       </button>
                       {metricOptions.map((opt) => (
                         <button
@@ -866,7 +866,7 @@ export default function GroupPage() {
                     className="inline-flex items-center hover:opacity-80 transition-opacity disabled:opacity-50 border-b-2 border-lime-500 min-w-[60px] sm:min-w-[80px] justify-center pb-1"
                   >
                     <span className="text-white">
-                      {xMetricId ? group.metrics.find((m) => m.id === xMetricId)?.name : '\u00A0'}
+                      {xMetricId ? group.metrics.find((m) => m.id === xMetricId)?.name.toLowerCase() : '\u00A0'}
                     </span>
                   </button>
                   {showXAxisDropdown && (
@@ -875,7 +875,7 @@ export default function GroupPage() {
                         onClick={() => { setXMetricId(''); setShowXAxisDropdown(false); }}
                         className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-700 ${!xMetricId ? 'bg-lime-900/20 text-lime-300' : 'text-gray-300'}`}
                       >
-                        None
+                        none
                       </button>
                       {metricOptions.map((opt) => (
                         <button
