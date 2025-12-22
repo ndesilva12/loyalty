@@ -310,6 +310,7 @@ export async function addMember(
     itemType,
     linkUrl,
     itemCategory,
+    disabledMetricIds: [], // No metrics disabled by default
     displayMode: 'user', // Default to showing user's actual profile
     customName: null,
     customImageUrl: null,
@@ -351,6 +352,7 @@ export async function getGroupMembers(groupId: string): Promise<GroupMember[]> {
       itemType: data.itemType ?? 'text',
       linkUrl: data.linkUrl ?? null,
       itemCategory: data.itemCategory ?? null,
+      disabledMetricIds: data.disabledMetricIds ?? [], // Default to no disabled metrics
       // Handle new display fields with defaults
       displayMode: data.displayMode ?? 'user',
       customName: data.customName ?? null,
@@ -378,6 +380,7 @@ export async function getMember(memberId: string): Promise<GroupMember | null> {
     itemType: data.itemType ?? 'text',
     linkUrl: data.linkUrl ?? null,
     itemCategory: data.itemCategory ?? null,
+    disabledMetricIds: data.disabledMetricIds ?? [],
     displayMode: data.displayMode ?? 'user',
     customName: data.customName ?? null,
     customImageUrl: data.customImageUrl ?? null,

@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { Eye, EyeOff, Anchor, Pencil, Check, X, Camera, Trash2, Link2, Mail, User, Settings, Users, ChevronUp, ChevronDown } from 'lucide-react';
+import { Eye, EyeOff, Anchor, Pencil, Check, X, Camera, Trash2, Link2, Mail, User, Settings, Users, ChevronUp, ChevronDown, ToggleLeft, ToggleRight } from 'lucide-react';
 import { GroupMember, Metric, AggregatedScore, Rating, MemberDisplayMode, MemberRatingMode, getMemberDisplayName, getMemberDisplayImage, metricAppliesToItem } from '@/types';
 import Avatar from '@/components/ui/Avatar';
 import Button from '@/components/ui/Button';
@@ -33,6 +33,7 @@ interface DataTableProps {
   onUpdateCustomDisplay?: (memberId: string, data: { customName?: string; customImageUrl?: string }) => Promise<void>;
   onToggleRatingMode?: (memberId: string, mode: MemberRatingMode) => Promise<void>;
   onToggleCoCaptain?: (memberId: string, clerkId: string, isCoCaptain: boolean) => Promise<void>;
+  onToggleMetricForItem?: (memberId: string, metricId: string, enabled: boolean) => Promise<void>;
 }
 
 export default function DataTable({
@@ -61,6 +62,7 @@ export default function DataTable({
   onUpdateCustomDisplay,
   onToggleRatingMode,
   onToggleCoCaptain,
+  onToggleMetricForItem,
 }: DataTableProps) {
   const [editingCell, setEditingCell] = useState<{ memberId: string; metricId: string } | null>(null);
   const [editValue, setEditValue] = useState<number>(50);
@@ -464,14 +466,27 @@ export default function DataTable({
                 const userRating = getUserRating(member.id, metric.id);
                 const isEditing = editingCell?.memberId === member.id && editingCell?.metricId === metric.id;
 
-                // If metric doesn't apply to this member, show a dash
+                // Check if this metric was explicitly disabled for this item
+                const isExplicitlyDisabled = member.disabledMetricIds?.includes(metric.id) ?? false;
+
+                // If metric doesn't apply to this member, show a dash with optional enable button
                 if (!isApplicable) {
                   return (
                     <td
                       key={metric.id}
                       className="py-2 sm:py-3 px-2 sm:px-4 text-center"
                     >
-                      <span className="text-gray-600 text-sm">—</span>
+                      {isCaptain && onToggleMetricForItem && isExplicitlyDisabled ? (
+                        <button
+                          onClick={() => onToggleMetricForItem(member.id, metric.id, true)}
+                          className="text-gray-600 hover:text-lime-400 transition-colors group"
+                          title="Enable this metric for this item"
+                        >
+                          <ToggleLeft className="w-5 h-5 mx-auto" />
+                        </button>
+                      ) : (
+                        <span className="text-gray-600 text-sm">—</span>
+                      )}
                     </td>
                   );
                 }
@@ -526,20 +541,35 @@ export default function DataTable({
                         </div>
                       </div>
                     ) : (
-                      <div
-                        className={`${canRate && onSubmitRating && isApplicable ? 'cursor-pointer hover:bg-gray-700 rounded-lg p-1.5 -m-1.5 transition-colors' : ''}`}
-                        onClick={() => canRate && onSubmitRating && isApplicable && handleStartEdit(member.id, metric.id)}
-                      >
-                        <div className={`font-semibold text-sm ${getScoreColor(score, metric)}`}>
-                          {metric.prefix}{score.toFixed(1)}{metric.suffix}
-                        </div>
-                        <div className="text-[10px] sm:text-xs text-gray-400">
-                          {count} rating{count !== 1 ? 's' : ''}
-                        </div>
-                        {userRating !== null && (
-                          <div className="text-[10px] sm:text-xs text-lime-400 mt-0.5">
-                            You: {metric.prefix}{userRating}{metric.suffix}
+                      <div className="relative group">
+                        <div
+                          className={`${canRate && onSubmitRating && isApplicable ? 'cursor-pointer hover:bg-gray-700 rounded-lg p-1.5 -m-1.5 transition-colors' : ''}`}
+                          onClick={() => canRate && onSubmitRating && isApplicable && handleStartEdit(member.id, metric.id)}
+                        >
+                          <div className={`font-semibold text-sm ${getScoreColor(score, metric)}`}>
+                            {metric.prefix}{score.toFixed(1)}{metric.suffix}
                           </div>
+                          <div className="text-[10px] sm:text-xs text-gray-400">
+                            {count} rating{count !== 1 ? 's' : ''}
+                          </div>
+                          {userRating !== null && (
+                            <div className="text-[10px] sm:text-xs text-lime-400 mt-0.5">
+                              You: {metric.prefix}{userRating}{metric.suffix}
+                            </div>
+                          )}
+                        </div>
+                        {/* Captain toggle to disable metric for this item */}
+                        {isCaptain && onToggleMetricForItem && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onToggleMetricForItem(member.id, metric.id, false);
+                            }}
+                            className="absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 bg-gray-700 rounded hover:bg-red-600"
+                            title="Disable this metric for this item"
+                          >
+                            <X className="w-3 h-3 text-gray-400 hover:text-white" />
+                          </button>
                         )}
                       </div>
                     )}

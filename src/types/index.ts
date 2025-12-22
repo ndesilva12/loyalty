@@ -76,6 +76,8 @@ export interface GroupMember {
   linkUrl: string | null; // URL for link-type items
   // Item category - determines which metrics apply to this item
   itemCategory: string | null; // e.g., "Player", "Team", "Actor", "Movie" (null = all metrics apply)
+  // Per-item metric control - allows disabling specific metrics for this item
+  disabledMetricIds: string[]; // Metric IDs that are explicitly disabled for this item
   // Captain-controlled display settings
   displayMode: MemberDisplayMode; // 'user' = show actual profile, 'custom' = show captain-set values
   customName: string | null; // Captain-set display name (used when displayMode is 'custom')
@@ -198,8 +200,12 @@ export const createDefaultMetric = (name: string, description: string, order: nu
   applicableCategories,
 });
 
-// Helper to check if a metric applies to an item based on its category
+// Helper to check if a metric applies to an item based on its category and per-item settings
 export const metricAppliesToItem = (metric: Metric, item: GroupMember): boolean => {
+  // Check if metric is explicitly disabled for this item
+  if (item.disabledMetricIds && item.disabledMetricIds.includes(metric.id)) {
+    return false;
+  }
   // If metric has no category restrictions, it applies to all items
   if (!metric.applicableCategories || metric.applicableCategories.length === 0) {
     return true;

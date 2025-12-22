@@ -439,6 +439,25 @@ export default function GroupPage() {
     }
   };
 
+  // Toggle whether a specific metric applies to a specific item
+  const handleToggleMetricForItem = async (memberId: string, metricId: string, enabled: boolean) => {
+    const member = members.find(m => m.id === memberId);
+    if (!member) return;
+
+    const currentDisabled = member.disabledMetricIds || [];
+    let newDisabled: string[];
+
+    if (enabled) {
+      // Remove from disabled list
+      newDisabled = currentDisabled.filter(id => id !== metricId);
+    } else {
+      // Add to disabled list
+      newDisabled = [...currentDisabled, metricId];
+    }
+
+    await updateMember(memberId, { disabledMetricIds: newDisabled });
+  };
+
   // Handle pending item approval/rejection
   const handleApprovePendingItem = async (item: PendingItem) => {
     if (!user) return;
@@ -945,6 +964,7 @@ export default function GroupPage() {
               onUpdateCustomDisplay={handleUpdateCustomDisplay}
               onToggleRatingMode={handleToggleRatingMode}
               onToggleCoCaptain={handleToggleCoCaptain}
+              onToggleMetricForItem={handleToggleMetricForItem}
             />
           </div>
         )}

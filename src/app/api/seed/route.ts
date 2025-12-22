@@ -406,36 +406,44 @@ export async function POST(request: Request) {
 
       // Add mock items to the group
       const items = mockItems[groupData.id] || [];
+      let addedItems = 0;
       for (const item of items) {
-        const itemRef = doc(collection(db, 'groups', groupData.id, 'members'));
-        await setDoc(itemRef, {
-          groupId: groupData.id,
-          userId: `item_${item.name.toLowerCase().replace(/\s+/g, '_')}`,
-          clerkId: null,
-          email: null,
-          name: item.name,
-          imageUrl: null,
-          placeholderImageUrl: null,
-          description: item.description || null,
-          status: 'placeholder',
-          visibleInGraph: true,
-          isCaptain: false,
-          invitedAt: now,
-          respondedAt: null,
-          itemType: 'text',
-          linkUrl: null,
-          itemCategory: item.category,
-          displayMode: 'custom',
-          customName: null,
-          customImageUrl: null,
-          ratingMode: 'group',
-        });
+        try {
+          const itemRef = doc(collection(db, 'groups', groupData.id, 'members'));
+          await setDoc(itemRef, {
+            groupId: groupData.id,
+            userId: `item_${item.name.toLowerCase().replace(/\s+/g, '_')}`,
+            clerkId: null,
+            email: null,
+            name: item.name,
+            imageUrl: null,
+            placeholderImageUrl: null,
+            description: item.description || null,
+            status: 'placeholder',
+            visibleInGraph: true,
+            isCaptain: false,
+            invitedAt: now,
+            respondedAt: null,
+            itemType: 'text',
+            linkUrl: null,
+            itemCategory: item.category,
+            displayMode: 'custom',
+            customName: null,
+            customImageUrl: null,
+            ratingMode: 'group',
+            disabledMetricIds: [], // Per-item metric control
+          });
+          addedItems++;
+        } catch (itemError) {
+          console.error(`Failed to add item ${item.name}:`, itemError);
+        }
       }
 
       createdGroups.push({
         id: groupData.id,
         name: groupData.name,
-        itemCount: items.length,
+        itemCount: addedItems,
+        expectedItems: items.length,
       });
     }
 
