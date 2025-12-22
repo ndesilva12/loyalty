@@ -3,32 +3,56 @@
 import { useState, useEffect } from 'react';
 import { useUser } from '@clerk/nextjs';
 import Link from 'next/link';
-import { Plus, Users, ChevronRight, Bell, UserPlus } from 'lucide-react';
+import { Plus, Users, ChevronRight, Bell, TrendingUp, Flame, Eye, Sparkles } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import Modal from '@/components/ui/Modal';
 import CreateGroupForm from '@/components/groups/CreateGroupForm';
-import { Group, Invitation, ClaimRequest } from '@/types';
+import { Group, Invitation } from '@/types';
 import {
   getUserGroups,
   createGroup,
   addMember,
   getUserInvitations,
   respondToInvitation,
-  getGroupClaimRequests,
+  getPopularGroups,
+  getTrendingGroups,
 } from '@/lib/firestore';
 
 export default function DashboardPage() {
   const { user, isLoaded } = useUser();
   const [groups, setGroups] = useState<Group[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const [popularGroups, setPopularGroups] = useState<Group[]>([]);
+  const [trendingGroups, setTrendingGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [seeding, setSeeding] = useState(false);
+  const [seedMessage, setSeedMessage] = useState<string | null>(null);
+
+  // Load popular and trending groups (doesn't require login)
+  useEffect(() => {
+    const loadFeaturedGroups = async () => {
+      try {
+        const [popular, trending] = await Promise.all([
+          getPopularGroups(6),
+          getTrendingGroups(6),
+        ]);
+        setPopularGroups(popular);
+        setTrendingGroups(trending);
+      } catch (error) {
+        console.error('Failed to load featured groups:', error);
+      }
+    };
+    loadFeaturedGroups();
+  }, []);
 
   useEffect(() => {
     if (isLoaded && user) {
       loadData();
+    } else if (isLoaded && !user) {
+      setLoading(false);
     }
   }, [isLoaded, user]);
 
@@ -66,6 +90,7 @@ export default function DashboardPage() {
       maxValue: m.maxValue ?? 100,
       prefix: (m.prefix ?? '') as '' | '#' | '$' | '€' | '£',
       suffix: (m.suffix ?? '') as '' | '%' | 'K' | 'M' | 'B' | 'T' | ' thousand' | ' million' | ' billion' | ' trillion',
+      applicableCategories: [],
     }));
     const group = await createGroup(user.id, data.name, data.description, metricsWithDefaults);
 
@@ -98,6 +123,45 @@ export default function DashboardPage() {
       loadData();
     } catch (error) {
       console.error('Failed to respond to invitation:', error);
+    }
+  };
+
+  const handleSeedGroups = async () => {
+    if (!user) return;
+
+    setSeeding(true);
+    setSeedMessage(null);
+
+    try {
+      const response = await fetch('/api/seed', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          captainEmail: user.emailAddresses[0]?.emailAddress,
+          captainClerkId: user.id,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setSeedMessage(`Created ${data.groups?.length || 0} sample groups!`);
+        // Reload popular and trending groups
+        const [popular, trending] = await Promise.all([
+          getPopularGroups(6),
+          getTrendingGroups(6),
+        ]);
+        setPopularGroups(popular);
+        setTrendingGroups(trending);
+        loadData();
+      } else {
+        setSeedMessage(data.error || 'Failed to create sample groups');
+      }
+    } catch (error) {
+      console.error('Seed error:', error);
+      setSeedMessage('Failed to create sample groups');
+    } finally {
+      setSeeding(false);
     }
   };
 
@@ -171,14 +235,34 @@ export default function DashboardPage() {
               Manage your groups and view member ratings
             </p>
           </div>
-          <Button variant="secondary" onClick={() => setShowCreateModal(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            New Group
-          </Button>
+          <div className="flex items-center gap-3">
+            {user && (
+              <Button
+                variant="outline"
+                onClick={handleSeedGroups}
+                loading={seeding}
+                className="hidden sm:inline-flex items-center gap-2"
+              >
+                <Sparkles className="w-4 h-4" />
+                Seed Sample Groups
+              </Button>
+            )}
+            <Button variant="secondary" onClick={() => setShowCreateModal(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              New Group
+            </Button>
+          </div>
         </div>
 
+        {/* Seed message */}
+        {seedMessage && (
+          <div className={`mb-4 p-3 rounded-lg ${seedMessage.includes('Created') ? 'bg-lime-900/30 text-lime-300' : 'bg-red-900/30 text-red-300'}`}>
+            {seedMessage}
+          </div>
+        )}
+
         {/* Groups Grid */}
-        {groups.length === 0 ? (
+        {user && groups.length === 0 ? (
           <Card className="p-12 text-center">
             <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
               <Users className="w-8 h-8 text-gray-400" />
@@ -194,7 +278,7 @@ export default function DashboardPage() {
               Create Group
             </Button>
           </Card>
-        ) : (
+        ) : user && groups.length > 0 ? (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {groups.map((group) => {
               return (
@@ -234,7 +318,135 @@ export default function DashboardPage() {
               );
             })}
           </div>
-        )}
+        ) : null}
+
+        {/* Popular Groups Section - Always visible */}
+        <div className="mt-12">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shadow-md">
+              <Flame className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-white">Popular Groups</h2>
+              <p className="text-sm text-gray-400">Most engaged groups on Scale</p>
+            </div>
+          </div>
+          {popularGroups.length > 0 ? (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {popularGroups.map((group) => (
+                <Link key={group.id} href={`/groups/${group.id}`}>
+                  <Card className="overflow-hidden hover:shadow-2xl hover:-translate-y-1 transition-all duration-200 cursor-pointer h-full border border-white/10 bg-white/5 backdrop-blur-sm">
+                    <div className="h-1.5 bg-gradient-to-r from-orange-500 to-red-600" />
+                    <div className="p-6">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h3 className="text-lg font-bold text-white mb-1">
+                            {group.name}
+                          </h3>
+                          {group.description && (
+                            <p className="text-sm text-gray-400 line-clamp-2 mb-4">
+                              {group.description}
+                            </p>
+                          )}
+                          <div className="flex items-center gap-3 text-xs">
+                            <span className="flex items-center gap-1 text-gray-400">
+                              <Eye className="w-3.5 h-3.5" />
+                              {group.viewCount || 0}
+                            </span>
+                            <span className="flex items-center gap-1 text-gray-400">
+                              <TrendingUp className="w-3.5 h-3.5" />
+                              {group.ratingCount || 0} ratings
+                            </span>
+                          </div>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-gray-500 flex-shrink-0" />
+                      </div>
+                    </div>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <Card className="p-8 text-center border border-white/10 bg-white/5 backdrop-blur-sm">
+              <Flame className="w-10 h-10 text-orange-500/50 mx-auto mb-3" />
+              <p className="text-gray-400">No popular groups yet</p>
+              <p className="text-sm text-gray-500 mt-1 mb-4">Create a public group to get started</p>
+              {user && (
+                <div className="space-y-2">
+                  <Button
+                    variant="outline"
+                    onClick={handleSeedGroups}
+                    loading={seeding}
+                    className="inline-flex items-center gap-2"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    Create Sample Groups
+                  </Button>
+                  {seedMessage && (
+                    <p className={`text-sm ${seedMessage.includes('Created') ? 'text-lime-400' : 'text-red-400'}`}>
+                      {seedMessage}
+                    </p>
+                  )}
+                </div>
+              )}
+            </Card>
+          )}
+        </div>
+
+        {/* Trending Groups Section - Always visible */}
+        <div className="mt-12">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-md">
+              <TrendingUp className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-white">Trending Now</h2>
+              <p className="text-sm text-gray-400">Groups with recent activity</p>
+            </div>
+          </div>
+          {trendingGroups.length > 0 ? (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {trendingGroups.map((group) => (
+                <Link key={group.id} href={`/groups/${group.id}`}>
+                  <Card className="overflow-hidden hover:shadow-2xl hover:-translate-y-1 transition-all duration-200 cursor-pointer h-full border border-white/10 bg-white/5 backdrop-blur-sm">
+                    <div className="h-1.5 bg-gradient-to-r from-blue-500 to-purple-600" />
+                    <div className="p-6">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h3 className="text-lg font-bold text-white mb-1">
+                            {group.name}
+                          </h3>
+                          {group.description && (
+                            <p className="text-sm text-gray-400 line-clamp-2 mb-4">
+                              {group.description}
+                            </p>
+                          )}
+                          <div className="flex items-center gap-3 text-xs">
+                            <span className="flex items-center gap-1 text-gray-400">
+                              <Eye className="w-3.5 h-3.5" />
+                              {group.viewCount || 0}
+                            </span>
+                            <span className="flex items-center gap-1 text-gray-400">
+                              <TrendingUp className="w-3.5 h-3.5" />
+                              {group.ratingCount || 0} ratings
+                            </span>
+                          </div>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-gray-500 flex-shrink-0" />
+                      </div>
+                    </div>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <Card className="p-8 text-center border border-white/10 bg-white/5 backdrop-blur-sm">
+              <TrendingUp className="w-10 h-10 text-blue-500/50 mx-auto mb-3" />
+              <p className="text-gray-400">No trending groups yet</p>
+              <p className="text-sm text-gray-500 mt-1">Public groups with recent activity will appear here</p>
+            </Card>
+          )}
+        </div>
       </main>
 
       {/* Create Group Modal */}

@@ -19,8 +19,8 @@ export default function Home() {
             </span>
           </h1>
           <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto">
-            Create groups, define custom metrics, and see your team members plotted on an
-            interactive 2D graph based on crowdsourced ratings.
+            Create groups, define the objects, and see them plotted on an interactive graph
+            based on crowdsourced ratings.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">

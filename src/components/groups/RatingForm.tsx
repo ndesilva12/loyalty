@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { ChevronLeft } from 'lucide-react';
-import { GroupMember, Metric, Rating } from '@/types';
+import { GroupMember, Metric, Rating, metricAppliesToItem } from '@/types';
 import Slider from '@/components/ui/Slider';
 import Avatar from '@/components/ui/Avatar';
 
@@ -38,11 +38,17 @@ export default function RatingForm({
   // Get current user's member record
   const currentMember = members.find((m) => m.clerkId === currentUserId);
 
+  // Filter metrics based on selected member's category
+  const applicableMetrics = useMemo(() => {
+    if (!selectedMember) return metrics;
+    return metrics.filter((metric) => metricAppliesToItem(metric, selectedMember));
+  }, [selectedMember, metrics]);
+
   useEffect(() => {
     if (selectedMember) {
-      // Load existing ratings for this member
+      // Load existing ratings for this member (only for applicable metrics)
       const memberRatings: Record<string, number> = {};
-      metrics.forEach((metric) => {
+      applicableMetrics.forEach((metric) => {
         const existing = existingRatings.find(
           (r) =>
             r.targetMemberId === selectedMember.id &&
@@ -55,7 +61,7 @@ export default function RatingForm({
       });
       setRatings(memberRatings);
     }
-  }, [selectedMember, existingRatings, metrics, currentUserId]);
+  }, [selectedMember, existingRatings, applicableMetrics, currentUserId]);
 
   // Cleanup timeouts on unmount
   useEffect(() => {
@@ -99,7 +105,7 @@ export default function RatingForm({
 
     setSaving('all');
     try {
-      for (const metric of metrics) {
+      for (const metric of applicableMetrics) {
         await onSubmitRating(metric.id, selectedMember.id, ratings[metric.id]);
       }
     } finally {
@@ -177,6 +183,11 @@ export default function RatingForm({
               <span className="text-xs sm:text-sm font-medium text-white truncate w-full text-center">
                 {member.name}
               </span>
+              {member.itemCategory && (
+                <span className="text-[10px] px-1.5 py-0.5 bg-gray-700 text-gray-300 rounded">
+                  {member.itemCategory}
+                </span>
+              )}
               {member.clerkId === currentUserId && (
                 <span className="text-[10px] sm:text-xs text-lime-400">(You)</span>
               )}
@@ -208,7 +219,12 @@ export default function RatingForm({
           </div>
 
           <div className="space-y-4 sm:space-y-6">
-            {metrics.map((metric) => {
+            {applicableMetrics.length === 0 ? (
+              <p className="text-gray-400 text-center py-4">
+                No metrics apply to this item.
+              </p>
+            ) : null}
+            {applicableMetrics.map((metric) => {
               const defaultValue = Math.round((metric.minValue + metric.maxValue) / 2);
               return (
                 <div key={metric.id} className="space-y-1 sm:space-y-2">

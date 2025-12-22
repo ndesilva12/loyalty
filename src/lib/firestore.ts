@@ -19,6 +19,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from './firebase';
 import {
   Group,
+  GroupObject,
   GroupMember,
   Rating,
   AggregatedScore,
@@ -26,19 +27,23 @@ import {
   ClaimRequest,
   ClaimToken,
   Metric,
-  PendingItem,
+  PendingObject,
+  ObjectType,
+  ObjectRatingMode,
+  MemberRole,
   createDefaultMetric,
 } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 
 // Collection references
 const groupsCollection = collection(db, 'groups');
-const membersCollection = collection(db, 'members');
+const objectsCollection = collection(db, 'objects'); // Things to rate in groups
+const membersCollection = collection(db, 'members'); // Users who belong to groups
 const ratingsCollection = collection(db, 'ratings');
 const invitationsCollection = collection(db, 'invitations');
 const claimRequestsCollection = collection(db, 'claimRequests');
 const claimTokensCollection = collection(db, 'claimTokens');
-const pendingItemsCollection = collection(db, 'pendingItems');
+const pendingObjectsCollection = collection(db, 'pendingObjects');
 
 // Helper to convert Firestore timestamps
 const convertTimestamp = (timestamp: Timestamp | Date | null): Date => {
@@ -67,6 +72,7 @@ export async function createGroup(
     maxValue: m.maxValue ?? 100,
     prefix: m.prefix ?? '',
     suffix: m.suffix ?? '',
+    applicableCategories: m.applicableCategories ?? [],
   }));
 
   const group: Group = {
@@ -76,6 +82,7 @@ export async function createGroup(
     captainId,
     coCaptainIds: [],
     metrics: metricsWithIds,
+    itemCategories: [], // Default to no categories
     defaultYMetricId: metricsWithIds.length > 1 ? metricsWithIds[1].id : (metricsWithIds[0]?.id || null),
     defaultXMetricId: metricsWithIds[0]?.id || null,
     lockedYMetricId: null,
@@ -83,12 +90,18 @@ export async function createGroup(
     captainControlEnabled: false,
     isPublic: true, // Default to public
     isOpen: false, // Default to closed (only members can rate)
+    isFeatured: false, // Default to not featured
+    viewCount: 0,
+    ratingCount: 0,
+    shareCount: 0,
+    lastActivityAt: now,
     createdAt: now,
     updatedAt: now,
   };
 
   await setDoc(doc(groupsCollection, groupId), {
     ...group,
+    lastActivityAt: Timestamp.fromDate(now),
     createdAt: Timestamp.fromDate(now),
     updatedAt: Timestamp.fromDate(now),
   });
@@ -110,6 +123,7 @@ export async function getGroup(groupId: string): Promise<Group | null> {
     maxValue: m.maxValue ?? 100,
     prefix: m.prefix ?? '',
     suffix: m.suffix ?? '',
+    applicableCategories: m.applicableCategories ?? [],
   }));
 
   return {
@@ -118,13 +132,19 @@ export async function getGroup(groupId: string): Promise<Group | null> {
     captainId,
     coCaptainIds: data.coCaptainIds ?? [],
     metrics,
+    itemCategories: data.itemCategories ?? [],
     defaultYMetricId: data.defaultYMetricId ?? null,
     defaultXMetricId: data.defaultXMetricId ?? null,
     lockedYMetricId: data.lockedYMetricId ?? null,
     lockedXMetricId: data.lockedXMetricId ?? null,
     captainControlEnabled: data.captainControlEnabled ?? false,
-    isPublic: data.isPublic ?? true, // Default to public for backward compatibility
-    isOpen: data.isOpen ?? false, // Default to closed for backward compatibility
+    isPublic: data.isPublic ?? true,
+    isOpen: data.isOpen ?? false,
+    isFeatured: data.isFeatured ?? false,
+    viewCount: data.viewCount ?? 0,
+    ratingCount: data.ratingCount ?? 0,
+    shareCount: data.shareCount ?? 0,
+    lastActivityAt: convertTimestamp(data.lastActivityAt ?? data.updatedAt ?? data.createdAt),
     createdAt: convertTimestamp(data.createdAt),
     updatedAt: convertTimestamp(data.updatedAt),
   } as Group;
@@ -157,6 +177,7 @@ export async function getUserGroups(clerkId: string): Promise<Group[]> {
       maxValue: m.maxValue ?? 100,
       prefix: m.prefix ?? '',
       suffix: m.suffix ?? '',
+      applicableCategories: m.applicableCategories ?? [],
     }));
 
     groupMap.set(docSnap.id, {
@@ -165,6 +186,7 @@ export async function getUserGroups(clerkId: string): Promise<Group[]> {
       captainId,
       coCaptainIds: data.coCaptainIds ?? [],
       metrics,
+      itemCategories: data.itemCategories ?? [],
       defaultYMetricId: data.defaultYMetricId ?? null,
       defaultXMetricId: data.defaultXMetricId ?? null,
       lockedYMetricId: data.lockedYMetricId ?? null,
@@ -172,6 +194,11 @@ export async function getUserGroups(clerkId: string): Promise<Group[]> {
       captainControlEnabled: data.captainControlEnabled ?? false,
       isPublic: data.isPublic ?? true,
       isOpen: data.isOpen ?? false,
+      isFeatured: data.isFeatured ?? false,
+      viewCount: data.viewCount ?? 0,
+      ratingCount: data.ratingCount ?? 0,
+      shareCount: data.shareCount ?? 0,
+      lastActivityAt: convertTimestamp(data.lastActivityAt ?? data.updatedAt ?? data.createdAt),
       createdAt: convertTimestamp(data.createdAt),
       updatedAt: convertTimestamp(data.updatedAt),
     } as Group);
@@ -201,7 +228,7 @@ export async function getUserGroups(clerkId: string): Promise<Group[]> {
 
 export async function updateGroup(
   groupId: string,
-  updates: Partial<Pick<Group, 'name' | 'description' | 'metrics' | 'defaultYMetricId' | 'defaultXMetricId' | 'lockedYMetricId' | 'lockedXMetricId' | 'captainControlEnabled' | 'coCaptainIds' | 'isPublic' | 'isOpen'>>
+  updates: Partial<Pick<Group, 'name' | 'description' | 'metrics' | 'itemCategories' | 'defaultYMetricId' | 'defaultXMetricId' | 'lockedYMetricId' | 'lockedXMetricId' | 'captainControlEnabled' | 'coCaptainIds' | 'isPublic' | 'isOpen' | 'isFeatured'>>
 ): Promise<void> {
   await updateDoc(doc(groupsCollection, groupId), {
     ...updates,
@@ -250,18 +277,183 @@ export async function deleteGroup(groupId: string): Promise<void> {
   await batch.commit();
 }
 
-// ============ MEMBER OPERATIONS ============
+// ============ OBJECT OPERATIONS (things to rate) ============
+
+export async function addObject(
+  groupId: string,
+  name: string,
+  description: string | null = null,
+  imageUrl: string | null = null,
+  objectType: ObjectType = 'text',
+  linkUrl: string | null = null,
+  category: string | null = null,
+  ratingMode: ObjectRatingMode = 'group'
+): Promise<GroupObject> {
+  const objectId = uuidv4();
+  const now = new Date();
+
+  const obj: GroupObject = {
+    id: objectId,
+    groupId,
+    name,
+    description,
+    imageUrl,
+    objectType,
+    linkUrl,
+    category,
+    disabledMetricIds: [],
+    enabledMetricIds: [],
+    visibleInGraph: true,
+    ratingMode,
+    claimedByClerkId: null,
+    claimedByName: null,
+    claimedByImageUrl: null,
+    claimStatus: 'unclaimed',
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  await setDoc(doc(objectsCollection, objectId), {
+    ...obj,
+    createdAt: Timestamp.fromDate(now),
+    updatedAt: Timestamp.fromDate(now),
+  });
+
+  return obj;
+}
+
+export async function getGroupObjects(groupId: string): Promise<GroupObject[]> {
+  const q = query(objectsCollection, where('groupId', '==', groupId));
+  const docs = await getDocs(q);
+
+  return docs.docs.map((docSnap) => {
+    const data = docSnap.data();
+    return {
+      id: docSnap.id,
+      groupId: data.groupId,
+      name: data.name,
+      description: data.description ?? null,
+      imageUrl: data.imageUrl ?? null,
+      objectType: data.objectType ?? 'text',
+      linkUrl: data.linkUrl ?? null,
+      category: data.category ?? null,
+      disabledMetricIds: data.disabledMetricIds ?? [],
+      enabledMetricIds: data.enabledMetricIds ?? [],
+      visibleInGraph: data.visibleInGraph ?? true,
+      ratingMode: data.ratingMode ?? 'group',
+      claimedByClerkId: data.claimedByClerkId ?? null,
+      claimedByName: data.claimedByName ?? null,
+      claimedByImageUrl: data.claimedByImageUrl ?? null,
+      claimStatus: data.claimStatus ?? 'unclaimed',
+      createdAt: convertTimestamp(data.createdAt),
+      updatedAt: convertTimestamp(data.updatedAt),
+    } as GroupObject;
+  });
+}
+
+export async function getObject(objectId: string): Promise<GroupObject | null> {
+  const docSnap = await getDoc(doc(objectsCollection, objectId));
+  if (!docSnap.exists()) return null;
+
+  const data = docSnap.data();
+  return {
+    id: docSnap.id,
+    groupId: data.groupId,
+    name: data.name,
+    description: data.description ?? null,
+    imageUrl: data.imageUrl ?? null,
+    objectType: data.objectType ?? 'text',
+    linkUrl: data.linkUrl ?? null,
+    category: data.category ?? null,
+    disabledMetricIds: data.disabledMetricIds ?? [],
+      enabledMetricIds: data.enabledMetricIds ?? [],
+    visibleInGraph: data.visibleInGraph ?? true,
+    ratingMode: data.ratingMode ?? 'group',
+    claimedByClerkId: data.claimedByClerkId ?? null,
+    claimedByName: data.claimedByName ?? null,
+    claimedByImageUrl: data.claimedByImageUrl ?? null,
+    claimStatus: data.claimStatus ?? 'unclaimed',
+    createdAt: convertTimestamp(data.createdAt),
+    updatedAt: convertTimestamp(data.updatedAt),
+  } as GroupObject;
+}
+
+export async function updateObject(
+  objectId: string,
+  updates: Partial<GroupObject>
+): Promise<void> {
+  const updateData: Record<string, unknown> = { ...updates };
+  updateData.updatedAt = Timestamp.fromDate(new Date());
+  await updateDoc(doc(objectsCollection, objectId), updateData);
+}
+
+export async function updateObjectVisibility(
+  objectId: string,
+  visibleInGraph: boolean
+): Promise<void> {
+  await updateDoc(doc(objectsCollection, objectId), {
+    visibleInGraph,
+    updatedAt: Timestamp.fromDate(new Date()),
+  });
+}
+
+export async function removeObject(objectId: string): Promise<void> {
+  const batch = writeBatch(db);
+
+  // Delete ratings for this object
+  const ratingsQuery = query(ratingsCollection, where('targetObjectId', '==', objectId));
+  const ratingDocs = await getDocs(ratingsQuery);
+  ratingDocs.docs.forEach((docRef) => batch.delete(docRef.ref));
+
+  // Delete the object
+  batch.delete(doc(objectsCollection, objectId));
+
+  await batch.commit();
+}
+
+export function subscribeToObjects(
+  groupId: string,
+  callback: (objects: GroupObject[]) => void
+): () => void {
+  const q = query(objectsCollection, where('groupId', '==', groupId));
+  return onSnapshot(q, (snapshot) => {
+    const objects = snapshot.docs.map((docSnap) => {
+      const data = docSnap.data();
+      return {
+        id: docSnap.id,
+        groupId: data.groupId,
+        name: data.name,
+        description: data.description ?? null,
+        imageUrl: data.imageUrl ?? null,
+        objectType: data.objectType ?? 'text',
+        linkUrl: data.linkUrl ?? null,
+        category: data.category ?? null,
+        disabledMetricIds: data.disabledMetricIds ?? [],
+      enabledMetricIds: data.enabledMetricIds ?? [],
+        visibleInGraph: data.visibleInGraph ?? true,
+        ratingMode: data.ratingMode ?? 'group',
+        claimedByClerkId: data.claimedByClerkId ?? null,
+        claimedByName: data.claimedByName ?? null,
+        claimedByImageUrl: data.claimedByImageUrl ?? null,
+        claimStatus: data.claimStatus ?? 'unclaimed',
+        createdAt: convertTimestamp(data.createdAt),
+        updatedAt: convertTimestamp(data.updatedAt),
+      } as GroupObject;
+    });
+    callback(objects);
+  });
+}
+
+// ============ MEMBER OPERATIONS (users in groups) ============
 
 export async function addMember(
   groupId: string,
-  email: string | null,
+  clerkId: string,
+  email: string,
   name: string,
-  placeholderImageUrl: string | null = null,
-  clerkId: string | null = null,
-  status: GroupMember['status'] = 'placeholder',
   imageUrl: string | null = null,
-  isCaptain: boolean = false,
-  description: string | null = null
+  role: MemberRole = 'member',
+  status: 'pending' | 'accepted' = 'pending'
 ): Promise<GroupMember> {
   const memberId = uuidv4();
   const now = new Date();
@@ -269,65 +461,48 @@ export async function addMember(
   const member: GroupMember = {
     id: memberId,
     groupId,
-    userId: memberId, // For now, same as member ID
     clerkId,
     email,
     name,
     imageUrl,
-    placeholderImageUrl,
-    description,
+    role,
     status,
-    visibleInGraph: true,
-    isCaptain,
     invitedAt: now,
-    respondedAt: isCaptain ? now : null,
-    displayMode: 'user', // Default to showing user's actual profile
-    customName: null,
-    customImageUrl: null,
-    ratingMode: 'group', // Default to group average ratings
+    respondedAt: status === 'accepted' ? now : null,
   };
 
   await setDoc(doc(membersCollection, memberId), {
     ...member,
     invitedAt: Timestamp.fromDate(now),
-    respondedAt: isCaptain ? Timestamp.fromDate(now) : null,
+    respondedAt: status === 'accepted' ? Timestamp.fromDate(now) : null,
   });
 
   return member;
-}
-
-export async function updateMemberVisibility(
-  memberId: string,
-  visibleInGraph: boolean
-): Promise<void> {
-  await updateDoc(doc(membersCollection, memberId), { visibleInGraph });
 }
 
 export async function getGroupMembers(groupId: string): Promise<GroupMember[]> {
   const q = query(membersCollection, where('groupId', '==', groupId));
   const docs = await getDocs(q);
 
-  const members = docs.docs.map((doc) => {
-    const data = doc.data();
-    // Handle backward compatibility: isCreator -> isCaptain
-    const isCaptain = data.isCaptain ?? data.isCreator ?? false;
+  const members = docs.docs.map((docSnap) => {
+    const data = docSnap.data();
     return {
-      ...data,
-      id: doc.id,
-      visibleInGraph: data.visibleInGraph ?? true,
-      isCaptain,
+      id: docSnap.id,
+      groupId: data.groupId,
+      clerkId: data.clerkId,
+      email: data.email,
+      name: data.name,
+      imageUrl: data.imageUrl ?? null,
+      role: data.role ?? (data.isCaptain ? 'captain' : 'member'),
+      status: data.status === 'placeholder' ? 'accepted' : (data.status ?? 'accepted'),
       invitedAt: convertTimestamp(data.invitedAt),
       respondedAt: data.respondedAt ? convertTimestamp(data.respondedAt) : null,
-      // Handle new display fields with defaults
-      displayMode: data.displayMode ?? 'user',
-      customName: data.customName ?? null,
-      customImageUrl: data.customImageUrl ?? null,
-      ratingMode: data.ratingMode ?? 'group', // Default to group average
     } as GroupMember;
   });
 
-  // Sort so captain is first
-  return members.sort((a, b) => (b.isCaptain ? 1 : 0) - (a.isCaptain ? 1 : 0));
+  // Sort: captain first, then co-captains, then members
+  const roleOrder = { captain: 0, 'co-captain': 1, member: 2 };
+  return members.sort((a, b) => roleOrder[a.role] - roleOrder[b.role]);
 }
 
 export async function getMember(memberId: string): Promise<GroupMember | null> {
@@ -335,17 +510,42 @@ export async function getMember(memberId: string): Promise<GroupMember | null> {
   if (!docSnap.exists()) return null;
 
   const data = docSnap.data();
-  const isCaptain = data.isCaptain ?? data.isCreator ?? false;
   return {
-    ...data,
     id: docSnap.id,
-    isCaptain,
+    groupId: data.groupId,
+    clerkId: data.clerkId,
+    email: data.email,
+    name: data.name,
+    imageUrl: data.imageUrl ?? null,
+    role: data.role ?? (data.isCaptain ? 'captain' : 'member'),
+    status: data.status === 'placeholder' ? 'accepted' : (data.status ?? 'accepted'),
     invitedAt: convertTimestamp(data.invitedAt),
     respondedAt: data.respondedAt ? convertTimestamp(data.respondedAt) : null,
-    displayMode: data.displayMode ?? 'user',
-    customName: data.customName ?? null,
-    customImageUrl: data.customImageUrl ?? null,
-    ratingMode: data.ratingMode ?? 'group', // Default to group average
+  } as GroupMember;
+}
+
+export async function getMemberByClerkId(groupId: string, clerkId: string): Promise<GroupMember | null> {
+  const q = query(
+    membersCollection,
+    where('groupId', '==', groupId),
+    where('clerkId', '==', clerkId)
+  );
+  const docs = await getDocs(q);
+  if (docs.empty) return null;
+
+  const docSnap = docs.docs[0];
+  const data = docSnap.data();
+  return {
+    id: docSnap.id,
+    groupId: data.groupId,
+    clerkId: data.clerkId,
+    email: data.email,
+    name: data.name,
+    imageUrl: data.imageUrl ?? null,
+    role: data.role ?? (data.isCaptain ? 'captain' : 'member'),
+    status: data.status === 'placeholder' ? 'accepted' : (data.status ?? 'accepted'),
+    invitedAt: convertTimestamp(data.invitedAt),
+    respondedAt: data.respondedAt ? convertTimestamp(data.respondedAt) : null,
   } as GroupMember;
 }
 
@@ -361,18 +561,7 @@ export async function updateMember(
 }
 
 export async function removeMember(memberId: string): Promise<void> {
-  // Delete member and their ratings
-  const batch = writeBatch(db);
-
-  // Delete ratings where this member is the target
-  const targetRatingsQuery = query(ratingsCollection, where('targetMemberId', '==', memberId));
-  const targetRatingDocs = await getDocs(targetRatingsQuery);
-  targetRatingDocs.docs.forEach((doc) => batch.delete(doc.ref));
-
-  // Delete the member
-  batch.delete(doc(membersCollection, memberId));
-
-  await batch.commit();
+  await deleteDoc(doc(membersCollection, memberId));
 }
 
 // ============ RATING OPERATIONS ============
@@ -381,7 +570,7 @@ export async function submitRating(
   groupId: string,
   metricId: string,
   raterId: string,
-  targetMemberId: string,
+  targetObjectId: string,
   value: number
 ): Promise<Rating> {
   // Check if rating already exists
@@ -390,7 +579,7 @@ export async function submitRating(
     where('groupId', '==', groupId),
     where('metricId', '==', metricId),
     where('raterId', '==', raterId),
-    where('targetMemberId', '==', targetMemberId)
+    where('targetObjectId', '==', targetObjectId)
   );
   const existingDocs = await getDocs(existingQuery);
 
@@ -420,7 +609,7 @@ export async function submitRating(
       groupId,
       metricId,
       raterId,
-      targetMemberId,
+      targetObjectId,
       value,
       createdAt: now,
       updatedAt: now,
@@ -440,11 +629,15 @@ export async function getRatings(groupId: string): Promise<Rating[]> {
   const q = query(ratingsCollection, where('groupId', '==', groupId));
   const docs = await getDocs(q);
 
-  return docs.docs.map((doc) => {
-    const data = doc.data();
+  return docs.docs.map((docSnap) => {
+    const data = docSnap.data();
     return {
-      ...data,
-      id: doc.id,
+      id: docSnap.id,
+      groupId: data.groupId,
+      metricId: data.metricId,
+      raterId: data.raterId,
+      targetObjectId: data.targetObjectId ?? data.targetMemberId, // Backward compat
+      value: data.value,
       createdAt: convertTimestamp(data.createdAt),
       updatedAt: convertTimestamp(data.updatedAt),
     } as Rating;
@@ -462,11 +655,15 @@ export async function getUserRatingsForGroup(
   );
   const docs = await getDocs(q);
 
-  return docs.docs.map((doc) => {
-    const data = doc.data();
+  return docs.docs.map((docSnap) => {
+    const data = docSnap.data();
     return {
-      ...data,
-      id: doc.id,
+      id: docSnap.id,
+      groupId: data.groupId,
+      metricId: data.metricId,
+      raterId: data.raterId,
+      targetObjectId: data.targetObjectId ?? data.targetMemberId, // Backward compat
+      value: data.value,
       createdAt: convertTimestamp(data.createdAt),
       updatedAt: convertTimestamp(data.updatedAt),
     } as Rating;
@@ -474,33 +671,33 @@ export async function getUserRatingsForGroup(
 }
 
 export function calculateAggregatedScores(
-  members: GroupMember[],
+  objects: GroupObject[],
   metrics: Metric[],
   ratings: Rating[],
   captainClerkId?: string
 ): AggregatedScore[] {
   const scores: AggregatedScore[] = [];
 
-  for (const member of members) {
+  for (const obj of objects) {
     for (const metric of metrics) {
-      let memberRatings = ratings.filter(
-        (r) => r.targetMemberId === member.id && r.metricId === metric.id
+      let objectRatings = ratings.filter(
+        (r) => r.targetObjectId === obj.id && r.metricId === metric.id
       );
 
       // If rating mode is 'captain', only use captain's rating
-      if (member.ratingMode === 'captain' && captainClerkId) {
-        memberRatings = memberRatings.filter((r) => r.raterId === captainClerkId);
+      if (obj.ratingMode === 'captain' && captainClerkId) {
+        objectRatings = objectRatings.filter((r) => r.raterId === captainClerkId);
       }
       // Otherwise (ratingMode === 'group'), use all ratings (default behavior)
 
-      const totalRatings = memberRatings.length;
+      const totalRatings = objectRatings.length;
       const averageValue =
         totalRatings > 0
-          ? memberRatings.reduce((sum, r) => sum + r.value, 0) / totalRatings
+          ? objectRatings.reduce((sum, r) => sum + r.value, 0) / totalRatings
           : 0;
 
       scores.push({
-        memberId: member.id,
+        objectId: obj.id,
         metricId: metric.id,
         averageValue,
         totalRatings,
@@ -511,13 +708,12 @@ export function calculateAggregatedScores(
   return scores;
 }
 
-// ============ INVITATION OPERATIONS ============
+// ============ INVITATION OPERATIONS (for group membership) ============
 
 export async function createInvitation(
   groupId: string,
   groupName: string,
   email: string,
-  memberId: string,
   invitedBy: string,
   invitedByName: string
 ): Promise<Invitation> {
@@ -529,7 +725,6 @@ export async function createInvitation(
     groupId,
     groupName,
     email,
-    memberId,
     invitedBy,
     invitedByName,
     status: 'pending',
@@ -554,11 +749,16 @@ export async function getUserInvitations(email: string): Promise<Invitation[]> {
   );
   const docs = await getDocs(q);
 
-  return docs.docs.map((doc) => {
-    const data = doc.data();
+  return docs.docs.map((docSnap) => {
+    const data = docSnap.data();
     return {
-      ...data,
-      id: doc.id,
+      id: docSnap.id,
+      groupId: data.groupId,
+      groupName: data.groupName,
+      email: data.email,
+      invitedBy: data.invitedBy,
+      invitedByName: data.invitedByName,
+      status: data.status,
       createdAt: convertTimestamp(data.createdAt),
       respondedAt: data.respondedAt ? convertTimestamp(data.respondedAt) : null,
     } as Invitation;
@@ -569,12 +769,14 @@ export async function respondToInvitation(
   invitationId: string,
   accept: boolean,
   clerkId: string,
+  email: string,
+  name: string,
   imageUrl: string | null
 ): Promise<void> {
   const invitation = await getDoc(doc(invitationsCollection, invitationId));
   if (!invitation.exists()) throw new Error('Invitation not found');
 
-  const invitationData = invitation.data() as Invitation;
+  const invitationData = invitation.data();
   const now = new Date();
 
   // Update invitation status
@@ -583,20 +785,25 @@ export async function respondToInvitation(
     respondedAt: Timestamp.fromDate(now),
   });
 
-  // Update member status
-  await updateDoc(doc(membersCollection, invitationData.memberId), {
-    status: accept ? 'accepted' : 'declined',
-    clerkId: accept ? clerkId : null,
-    imageUrl: accept ? imageUrl : null,
-    respondedAt: Timestamp.fromDate(now),
-  });
+  if (accept) {
+    // Create member record for the user
+    await addMember(
+      invitationData.groupId,
+      clerkId,
+      email,
+      name,
+      imageUrl,
+      'member',
+      'accepted'
+    );
+  }
 }
 
-// ============ CLAIM REQUEST OPERATIONS ============
+// ============ CLAIM REQUEST OPERATIONS (for claiming user-type objects) ============
 
 export async function createClaimRequest(
   groupId: string,
-  placeholderMemberId: string,
+  objectId: string,
   claimantClerkId: string
 ): Promise<ClaimRequest> {
   const requestId = uuidv4();
@@ -605,7 +812,7 @@ export async function createClaimRequest(
   const request: ClaimRequest = {
     id: requestId,
     groupId,
-    placeholderMemberId,
+    objectId,
     claimantClerkId,
     status: 'pending',
     createdAt: now,
@@ -618,6 +825,9 @@ export async function createClaimRequest(
     respondedAt: null,
   });
 
+  // Update object claim status to pending
+  await updateObject(objectId, { claimStatus: 'pending' });
+
   return request;
 }
 
@@ -629,11 +839,14 @@ export async function getGroupClaimRequests(groupId: string): Promise<ClaimReque
   );
   const docs = await getDocs(q);
 
-  return docs.docs.map((doc) => {
-    const data = doc.data();
+  return docs.docs.map((docSnap) => {
+    const data = docSnap.data();
     return {
-      ...data,
-      id: doc.id,
+      id: docSnap.id,
+      groupId: data.groupId,
+      objectId: data.objectId ?? data.placeholderMemberId, // Backward compat
+      claimantClerkId: data.claimantClerkId,
+      status: data.status,
       createdAt: convertTimestamp(data.createdAt),
       respondedAt: data.respondedAt ? convertTimestamp(data.respondedAt) : null,
     } as ClaimRequest;
@@ -649,7 +862,8 @@ export async function respondToClaimRequest(
   const request = await getDoc(doc(claimRequestsCollection, requestId));
   if (!request.exists()) throw new Error('Claim request not found');
 
-  const requestData = request.data() as ClaimRequest;
+  const requestData = request.data();
+  const objectId = requestData.objectId ?? requestData.placeholderMemberId;
   const now = new Date();
 
   // Update request status
@@ -659,14 +873,16 @@ export async function respondToClaimRequest(
   });
 
   if (approve) {
-    // Update member to link with claimant
-    await updateDoc(doc(membersCollection, requestData.placeholderMemberId), {
-      status: 'accepted',
-      clerkId: requestData.claimantClerkId,
-      name: claimantName,
-      imageUrl: claimantImageUrl,
-      respondedAt: Timestamp.fromDate(now),
+    // Update object to link with claimant
+    await updateObject(objectId, {
+      claimStatus: 'claimed',
+      claimedByClerkId: requestData.claimantClerkId,
+      claimedByName: claimantName,
+      claimedByImageUrl: claimantImageUrl,
     });
+  } else {
+    // Reset claim status
+    await updateObject(objectId, { claimStatus: 'unclaimed' });
   }
 }
 
@@ -691,6 +907,7 @@ export function subscribeToGroup(
       maxValue: m.maxValue ?? 100,
       prefix: m.prefix ?? '',
       suffix: m.suffix ?? '',
+      applicableCategories: m.applicableCategories ?? [],
     }));
 
     callback({
@@ -699,6 +916,7 @@ export function subscribeToGroup(
       captainId,
       coCaptainIds: data.coCaptainIds ?? [],
       metrics,
+      itemCategories: data.itemCategories ?? [],
       defaultYMetricId: data.defaultYMetricId ?? null,
       defaultXMetricId: data.defaultXMetricId ?? null,
       lockedYMetricId: data.lockedYMetricId ?? null,
@@ -706,6 +924,11 @@ export function subscribeToGroup(
       captainControlEnabled: data.captainControlEnabled ?? false,
       isPublic: data.isPublic ?? true,
       isOpen: data.isOpen ?? false,
+      isFeatured: data.isFeatured ?? false,
+      viewCount: data.viewCount ?? 0,
+      ratingCount: data.ratingCount ?? 0,
+      shareCount: data.shareCount ?? 0,
+      lastActivityAt: convertTimestamp(data.lastActivityAt ?? data.updatedAt ?? data.createdAt),
       createdAt: convertTimestamp(data.createdAt),
       updatedAt: convertTimestamp(data.updatedAt),
     } as Group);
@@ -718,29 +941,139 @@ export function subscribeToMembers(
 ): () => void {
   const q = query(membersCollection, where('groupId', '==', groupId));
   return onSnapshot(q, (snapshot) => {
-    const members = snapshot.docs.map((doc) => {
-      const data = doc.data();
-      // Handle backward compatibility: isCreator -> isCaptain
-      const isCaptain = data.isCaptain ?? data.isCreator ?? false;
+    const members = snapshot.docs.map((docSnap) => {
+      const data = docSnap.data();
       return {
-        ...data,
-        id: doc.id,
-        email: data.email ?? null, // Backward compatibility for optional email
-        description: data.description ?? null, // Backward compatibility
-        visibleInGraph: data.visibleInGraph ?? true,
-        isCaptain,
+        id: docSnap.id,
+        groupId: data.groupId,
+        clerkId: data.clerkId,
+        email: data.email,
+        name: data.name,
+        imageUrl: data.imageUrl ?? null,
+        role: data.role ?? (data.isCaptain ? 'captain' : 'member'),
+        status: data.status === 'placeholder' ? 'accepted' : (data.status ?? 'accepted'),
         invitedAt: convertTimestamp(data.invitedAt),
         respondedAt: data.respondedAt ? convertTimestamp(data.respondedAt) : null,
-        // Handle new display fields with defaults
-        displayMode: data.displayMode ?? 'user',
-        customName: data.customName ?? null,
-        customImageUrl: data.customImageUrl ?? null,
-        ratingMode: data.ratingMode ?? 'group', // Default to group average
       } as GroupMember;
     });
-    // Sort so captain is first
-    callback(members.sort((a, b) => (b.isCaptain ? 1 : 0) - (a.isCaptain ? 1 : 0)));
+    // Sort: captain first, then co-captains, then members
+    const roleOrder = { captain: 0, 'co-captain': 1, member: 2 };
+    callback(members.sort((a, b) => roleOrder[a.role] - roleOrder[b.role]));
   });
+}
+
+// ============ PUBLIC GROUPS (POPULAR/TRENDING) ============
+
+// Get all public groups
+export async function getPublicGroups(): Promise<Group[]> {
+  const q = query(
+    groupsCollection,
+    where('isPublic', '==', true)
+  );
+  const docs = await getDocs(q);
+
+  const groups = docs.docs.map((docSnap) => {
+    const data = docSnap.data();
+    const captainId = data.captainId || data.creatorId;
+    const metrics = (data.metrics || []).map((m: Partial<Metric>) => ({
+      ...m,
+      minValue: m.minValue ?? 0,
+      maxValue: m.maxValue ?? 100,
+      prefix: m.prefix ?? '',
+      suffix: m.suffix ?? '',
+      applicableCategories: m.applicableCategories ?? [],
+    }));
+
+    return {
+      ...data,
+      id: docSnap.id,
+      captainId,
+      coCaptainIds: data.coCaptainIds ?? [],
+      metrics,
+      itemCategories: data.itemCategories ?? [],
+      defaultYMetricId: data.defaultYMetricId ?? null,
+      defaultXMetricId: data.defaultXMetricId ?? null,
+      lockedYMetricId: data.lockedYMetricId ?? null,
+      lockedXMetricId: data.lockedXMetricId ?? null,
+      captainControlEnabled: data.captainControlEnabled ?? false,
+      isPublic: data.isPublic ?? true,
+      isOpen: data.isOpen ?? false,
+      isFeatured: data.isFeatured ?? false,
+      viewCount: data.viewCount ?? 0,
+      ratingCount: data.ratingCount ?? 0,
+      shareCount: data.shareCount ?? 0,
+      lastActivityAt: convertTimestamp(data.lastActivityAt ?? data.updatedAt ?? data.createdAt),
+      createdAt: convertTimestamp(data.createdAt),
+      updatedAt: convertTimestamp(data.updatedAt),
+    } as Group;
+  });
+
+  return groups;
+}
+
+// Get featured groups (subset of public groups marked as featured)
+export async function getFeaturedGroups(): Promise<Group[]> {
+  const groups = await getPublicGroups();
+  return groups.filter((g) => g.isFeatured);
+}
+
+// Get popular groups (sorted by total engagement)
+export async function getPopularGroups(limit: number = 10): Promise<Group[]> {
+  const groups = await getPublicGroups();
+
+  // Sort by total engagement (views + ratings + shares), then by creation date
+  return groups
+    .sort((a, b) => {
+      const aScore = (a.viewCount || 0) + (a.ratingCount || 0) * 2 + (a.shareCount || 0) * 3;
+      const bScore = (b.viewCount || 0) + (b.ratingCount || 0) * 2 + (b.shareCount || 0) * 3;
+      // If scores are equal, sort by creation date (newest first)
+      if (bScore === aScore) {
+        return b.createdAt.getTime() - a.createdAt.getTime();
+      }
+      return bScore - aScore;
+    })
+    .slice(0, limit);
+}
+
+// Get trending groups (recent activity weighted)
+export async function getTrendingGroups(limit: number = 10): Promise<Group[]> {
+  const groups = await getPublicGroups();
+  const now = new Date();
+  const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+  // Filter to groups with recent activity and sort by recency + engagement
+  const recentGroups = groups.filter((g) => g.lastActivityAt >= monthAgo || g.createdAt >= monthAgo);
+
+  // If no recent groups, return newest public groups
+  if (recentGroups.length === 0) {
+    return groups
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .slice(0, limit);
+  }
+
+  return recentGroups
+    .sort((a, b) => {
+      // Weight recent activity more heavily
+      const aRecency = Math.max(a.lastActivityAt.getTime(), a.createdAt.getTime());
+      const bRecency = Math.max(b.lastActivityAt.getTime(), b.createdAt.getTime());
+      const aScore = ((a.viewCount || 0) + (a.ratingCount || 0) * 2 + 1) * (aRecency / now.getTime());
+      const bScore = ((b.viewCount || 0) + (b.ratingCount || 0) * 2 + 1) * (bRecency / now.getTime());
+      return bScore - aScore;
+    })
+    .slice(0, limit);
+}
+
+// Increment view count for a group
+export async function incrementGroupViews(groupId: string): Promise<void> {
+  const groupRef = doc(groupsCollection, groupId);
+  const docSnap = await getDoc(groupRef);
+  if (docSnap.exists()) {
+    const currentViews = docSnap.data().viewCount ?? 0;
+    await updateDoc(groupRef, {
+      viewCount: currentViews + 1,
+      lastActivityAt: Timestamp.fromDate(new Date()),
+    });
+  }
 }
 
 export function subscribeToRatings(
@@ -749,11 +1082,15 @@ export function subscribeToRatings(
 ): () => void {
   const q = query(ratingsCollection, where('groupId', '==', groupId));
   return onSnapshot(q, (snapshot) => {
-    const ratings = snapshot.docs.map((doc) => {
-      const data = doc.data();
+    const ratings = snapshot.docs.map((docSnap) => {
+      const data = docSnap.data();
       return {
-        ...data,
-        id: doc.id,
+        id: docSnap.id,
+        groupId: data.groupId,
+        metricId: data.metricId,
+        raterId: data.raterId,
+        targetObjectId: data.targetObjectId ?? data.targetMemberId, // Backward compat
+        value: data.value,
         createdAt: convertTimestamp(data.createdAt),
         updatedAt: convertTimestamp(data.updatedAt),
       } as Rating;
@@ -764,13 +1101,13 @@ export function subscribeToRatings(
 
 // ============ IMAGE UPLOAD ============
 
-export async function uploadMemberImage(
+export async function uploadObjectImage(
   groupId: string,
   file: File
 ): Promise<string> {
   const fileExtension = file.name.split('.').pop() || 'jpg';
   const fileName = `${uuidv4()}.${fileExtension}`;
-  const storageRef = ref(storage, `groups/${groupId}/members/${fileName}`);
+  const storageRef = ref(storage, `groups/${groupId}/objects/${fileName}`);
 
   await uploadBytes(storageRef, file);
   const downloadUrl = await getDownloadURL(storageRef);
@@ -778,11 +1115,11 @@ export async function uploadMemberImage(
   return downloadUrl;
 }
 
-// ============ CLAIM TOKEN OPERATIONS ============
+// ============ CLAIM TOKEN OPERATIONS (for claiming user-type objects) ============
 
 export async function createClaimToken(
   groupId: string,
-  memberId: string,
+  objectId: string,
   createdBy: string,
   email: string | null = null
 ): Promise<ClaimToken> {
@@ -793,7 +1130,7 @@ export async function createClaimToken(
   const claimToken: ClaimToken = {
     id: tokenId,
     groupId,
-    memberId,
+    objectId,
     email,
     token,
     createdBy,
@@ -820,64 +1157,69 @@ export async function getClaimTokenByToken(token: string): Promise<ClaimToken | 
   const docSnap = docs.docs[0];
   const data = docSnap.data();
   return {
-    ...data,
     id: docSnap.id,
+    groupId: data.groupId,
+    objectId: data.objectId ?? data.memberId, // Backward compat
+    email: data.email,
+    token: data.token,
+    createdBy: data.createdBy,
+    status: data.status,
     createdAt: convertTimestamp(data.createdAt),
     claimedAt: data.claimedAt ? convertTimestamp(data.claimedAt) : null,
+    claimedBy: data.claimedBy ?? null,
   } as ClaimToken;
 }
 
-export async function getClaimTokensForMember(memberId: string): Promise<ClaimToken[]> {
-  const q = query(claimTokensCollection, where('memberId', '==', memberId));
+export async function getClaimTokensForObject(objectId: string): Promise<ClaimToken[]> {
+  const q = query(claimTokensCollection, where('objectId', '==', objectId));
   const docs = await getDocs(q);
 
   return docs.docs.map((docSnap) => {
     const data = docSnap.data();
     return {
-      ...data,
       id: docSnap.id,
+      groupId: data.groupId,
+      objectId: data.objectId ?? data.memberId,
+      email: data.email,
+      token: data.token,
+      createdBy: data.createdBy,
+      status: data.status,
       createdAt: convertTimestamp(data.createdAt),
       claimedAt: data.claimedAt ? convertTimestamp(data.claimedAt) : null,
+      claimedBy: data.claimedBy ?? null,
     } as ClaimToken;
   });
 }
 
-export async function claimProfile(
+export async function claimObject(
   token: string,
   clerkId: string,
   name: string,
   imageUrl: string | null
-): Promise<{ success: boolean; memberId?: string; groupId?: string; error?: string }> {
+): Promise<{ success: boolean; objectId?: string; groupId?: string; error?: string }> {
   const claimToken = await getClaimTokenByToken(token);
 
   if (!claimToken) {
     return { success: false, error: 'Invalid or expired claim link' };
   }
 
-  // Check if token is for a specific email
-  if (claimToken.email) {
-    // We can't verify email here since we don't have access to the user's email
-    // The frontend will need to handle this check
+  const obj = await getObject(claimToken.objectId);
+  if (!obj) {
+    return { success: false, error: 'Object not found' };
   }
 
-  const member = await getMember(claimToken.memberId);
-  if (!member) {
-    return { success: false, error: 'Member profile not found' };
-  }
-
-  if (member.clerkId) {
+  if (obj.claimStatus === 'claimed') {
     return { success: false, error: 'This profile has already been claimed' };
   }
 
   const now = new Date();
 
-  // Update the member to link to the claiming user
-  await updateDoc(doc(membersCollection, claimToken.memberId), {
-    clerkId,
-    name,
-    imageUrl,
-    status: 'accepted',
-    respondedAt: Timestamp.fromDate(now),
+  // Update the object to link to the claiming user
+  await updateObject(claimToken.objectId, {
+    claimStatus: 'claimed',
+    claimedByClerkId: clerkId,
+    claimedByName: name,
+    claimedByImageUrl: imageUrl,
   });
 
   // Mark the claim token as used
@@ -889,7 +1231,7 @@ export async function claimProfile(
 
   return {
     success: true,
-    memberId: claimToken.memberId,
+    objectId: claimToken.objectId,
     groupId: claimToken.groupId,
   };
 }
@@ -900,25 +1242,31 @@ export async function invalidateClaimToken(tokenId: string): Promise<void> {
   });
 }
 
-// ============ PENDING ITEM OPERATIONS ============
+// ============ PENDING OBJECT OPERATIONS ============
 
-export async function submitPendingItem(
+export async function submitPendingObject(
   groupId: string,
   name: string,
   description: string | null,
   imageUrl: string | null,
+  objectType: ObjectType,
+  linkUrl: string | null,
+  category: string | null,
   submittedBy: string,
   submittedByName: string
-): Promise<PendingItem> {
-  const itemId = uuidv4();
+): Promise<PendingObject> {
+  const objectId = uuidv4();
   const now = new Date();
 
-  const pendingItem: PendingItem = {
-    id: itemId,
+  const pendingObject: PendingObject = {
+    id: objectId,
     groupId,
     name,
     description,
     imageUrl,
+    objectType,
+    linkUrl,
+    category,
     submittedBy,
     submittedByName,
     status: 'pending',
@@ -927,17 +1275,17 @@ export async function submitPendingItem(
     respondedBy: null,
   };
 
-  await setDoc(doc(pendingItemsCollection, itemId), {
-    ...pendingItem,
+  await setDoc(doc(pendingObjectsCollection, objectId), {
+    ...pendingObject,
     createdAt: Timestamp.fromDate(now),
   });
 
-  return pendingItem;
+  return pendingObject;
 }
 
-export async function getPendingItems(groupId: string): Promise<PendingItem[]> {
+export async function getPendingObjects(groupId: string): Promise<PendingObject[]> {
   const q = query(
-    pendingItemsCollection,
+    pendingObjectsCollection,
     where('groupId', '==', groupId),
     where('status', '==', 'pending')
   );
@@ -946,71 +1294,89 @@ export async function getPendingItems(groupId: string): Promise<PendingItem[]> {
   return docs.docs.map((docSnap) => {
     const data = docSnap.data();
     return {
-      ...data,
       id: docSnap.id,
+      groupId: data.groupId,
+      name: data.name,
+      description: data.description ?? null,
+      imageUrl: data.imageUrl ?? null,
+      objectType: data.objectType ?? 'text',
+      linkUrl: data.linkUrl ?? null,
+      category: data.category ?? null,
+      submittedBy: data.submittedBy,
+      submittedByName: data.submittedByName,
+      status: data.status,
       createdAt: convertTimestamp(data.createdAt),
       respondedAt: data.respondedAt ? convertTimestamp(data.respondedAt) : null,
-    } as PendingItem;
+      respondedBy: data.respondedBy ?? null,
+    } as PendingObject;
   });
 }
 
-export async function respondToPendingItem(
-  itemId: string,
+export async function respondToPendingObject(
+  pendingObjectId: string,
   approve: boolean,
   respondedBy: string,
   groupId: string
-): Promise<GroupMember | null> {
-  const itemDoc = await getDoc(doc(pendingItemsCollection, itemId));
-  if (!itemDoc.exists()) throw new Error('Pending item not found');
+): Promise<GroupObject | null> {
+  const pendingDoc = await getDoc(doc(pendingObjectsCollection, pendingObjectId));
+  if (!pendingDoc.exists()) throw new Error('Pending object not found');
 
-  const itemData = itemDoc.data() as PendingItem;
+  const pendingData = pendingDoc.data() as PendingObject;
   const now = new Date();
 
-  // Update pending item status
-  await updateDoc(doc(pendingItemsCollection, itemId), {
+  // Update pending object status
+  await updateDoc(doc(pendingObjectsCollection, pendingObjectId), {
     status: approve ? 'approved' : 'rejected',
     respondedAt: Timestamp.fromDate(now),
     respondedBy,
   });
 
   if (approve) {
-    // Create actual member from pending item
-    const member = await addMember(
+    // Create actual object from pending object
+    const obj = await addObject(
       groupId,
-      null, // email
-      itemData.name,
-      itemData.imageUrl, // placeholderImageUrl
-      null, // clerkId
-      'placeholder', // status
-      null, // imageUrl
-      false, // isCaptain
-      itemData.description
+      pendingData.name,
+      pendingData.description,
+      pendingData.imageUrl,
+      pendingData.objectType,
+      pendingData.linkUrl,
+      pendingData.category
     );
-    return member;
+    return obj;
   }
 
   return null;
 }
 
-export function subscribeToPendingItems(
+export function subscribeToPendingObjects(
   groupId: string,
-  callback: (items: PendingItem[]) => void
+  callback: (objects: PendingObject[]) => void
 ): () => void {
   const q = query(
-    pendingItemsCollection,
+    pendingObjectsCollection,
     where('groupId', '==', groupId),
     where('status', '==', 'pending')
   );
   return onSnapshot(q, (snapshot) => {
-    const items = snapshot.docs.map((docSnap) => {
+    const objects = snapshot.docs.map((docSnap) => {
       const data = docSnap.data();
       return {
-        ...data,
         id: docSnap.id,
+        groupId: data.groupId,
+        name: data.name,
+        description: data.description ?? null,
+        imageUrl: data.imageUrl ?? null,
+        objectType: data.objectType ?? 'text',
+        linkUrl: data.linkUrl ?? null,
+        category: data.category ?? null,
+        submittedBy: data.submittedBy,
+        submittedByName: data.submittedByName,
+        status: data.status,
         createdAt: convertTimestamp(data.createdAt),
         respondedAt: data.respondedAt ? convertTimestamp(data.respondedAt) : null,
-      } as PendingItem;
+        respondedBy: data.respondedBy ?? null,
+      } as PendingObject;
     });
-    callback(items);
+    callback(objects);
   });
 }
