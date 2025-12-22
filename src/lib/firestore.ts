@@ -790,14 +790,13 @@ export function subscribeToMembers(
   });
 }
 
-// ============ FEATURED GROUPS (POPULAR/TRENDING) ============
+// ============ PUBLIC GROUPS (POPULAR/TRENDING) ============
 
-export async function getFeaturedGroups(): Promise<Group[]> {
-  // Get groups that are public, featured, and have activity
+// Get all public groups
+export async function getPublicGroups(): Promise<Group[]> {
   const q = query(
     groupsCollection,
-    where('isPublic', '==', true),
-    where('isFeatured', '==', true)
+    where('isPublic', '==', true)
   );
   const docs = await getDocs(q);
 
@@ -840,14 +839,25 @@ export async function getFeaturedGroups(): Promise<Group[]> {
   return groups;
 }
 
+// Get featured groups (subset of public groups marked as featured)
+export async function getFeaturedGroups(): Promise<Group[]> {
+  const groups = await getPublicGroups();
+  return groups.filter((g) => g.isFeatured);
+}
+
 // Get popular groups (sorted by total engagement)
 export async function getPopularGroups(limit: number = 10): Promise<Group[]> {
-  const groups = await getFeaturedGroups();
-  // Sort by total engagement (views + ratings + shares)
+  const groups = await getPublicGroups();
+
+  // Sort by total engagement (views + ratings + shares), then by creation date
   return groups
     .sort((a, b) => {
-      const aScore = a.viewCount + a.ratingCount * 2 + a.shareCount * 3;
-      const bScore = b.viewCount + b.ratingCount * 2 + b.shareCount * 3;
+      const aScore = (a.viewCount || 0) + (a.ratingCount || 0) * 2 + (a.shareCount || 0) * 3;
+      const bScore = (b.viewCount || 0) + (b.ratingCount || 0) * 2 + (b.shareCount || 0) * 3;
+      // If scores are equal, sort by creation date (newest first)
+      if (bScore === aScore) {
+        return b.createdAt.getTime() - a.createdAt.getTime();
+      }
       return bScore - aScore;
     })
     .slice(0, limit);
@@ -855,19 +865,27 @@ export async function getPopularGroups(limit: number = 10): Promise<Group[]> {
 
 // Get trending groups (recent activity weighted)
 export async function getTrendingGroups(limit: number = 10): Promise<Group[]> {
-  const groups = await getFeaturedGroups();
+  const groups = await getPublicGroups();
   const now = new Date();
-  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-  // Sort by recency of activity combined with engagement
-  return groups
-    .filter((g) => g.lastActivityAt >= weekAgo)
+  // Filter to groups with recent activity and sort by recency + engagement
+  const recentGroups = groups.filter((g) => g.lastActivityAt >= monthAgo || g.createdAt >= monthAgo);
+
+  // If no recent groups, return newest public groups
+  if (recentGroups.length === 0) {
+    return groups
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .slice(0, limit);
+  }
+
+  return recentGroups
     .sort((a, b) => {
       // Weight recent activity more heavily
-      const aRecency = a.lastActivityAt.getTime();
-      const bRecency = b.lastActivityAt.getTime();
-      const aScore = (a.viewCount + a.ratingCount * 2) * (aRecency / now.getTime());
-      const bScore = (b.viewCount + b.ratingCount * 2) * (bRecency / now.getTime());
+      const aRecency = Math.max(a.lastActivityAt.getTime(), a.createdAt.getTime());
+      const bRecency = Math.max(b.lastActivityAt.getTime(), b.createdAt.getTime());
+      const aScore = ((a.viewCount || 0) + (a.ratingCount || 0) * 2 + 1) * (aRecency / now.getTime());
+      const bScore = ((b.viewCount || 0) + (b.ratingCount || 0) * 2 + 1) * (bRecency / now.getTime());
       return bScore - aScore;
     })
     .slice(0, limit);
