@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useUser } from '@clerk/nextjs';
 import Link from 'next/link';
-import { Plus, Users, ChevronRight, Bell, TrendingUp, Flame, Eye, Sparkles } from 'lucide-react';
+import { Plus, Users, ChevronRight, Bell, TrendingUp, Flame, Eye, Sparkles, RefreshCw } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
@@ -30,6 +30,8 @@ export default function DashboardPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [seeding, setSeeding] = useState(false);
   const [seedMessage, setSeedMessage] = useState<string | null>(null);
+  const [migrating, setMigrating] = useState(false);
+  const [migrateMessage, setMigrateMessage] = useState<string | null>(null);
 
   // Load popular and trending groups (doesn't require login)
   useEffect(() => {
@@ -166,6 +168,35 @@ export default function DashboardPage() {
     }
   };
 
+  const handleMigrateData = async () => {
+    if (!user) return;
+
+    setMigrating(true);
+    setMigrateMessage(null);
+
+    try {
+      const response = await fetch('/api/migrate-objects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setMigrateMessage(`${data.message}`);
+        // Reload data after migration
+        loadData();
+      } else {
+        setMigrateMessage(data.error || 'Migration failed');
+      }
+    } catch (error) {
+      console.error('Migration error:', error);
+      setMigrateMessage('Migration failed - check console for details');
+    } finally {
+      setMigrating(false);
+    }
+  };
+
   if (!isLoaded || loading) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -238,15 +269,26 @@ export default function DashboardPage() {
           </div>
           <div className="flex items-center gap-3">
             {user && (
-              <Button
-                variant="outline"
-                onClick={handleSeedGroups}
-                loading={seeding}
-                className="hidden sm:inline-flex items-center gap-2"
-              >
-                <Sparkles className="w-4 h-4" />
-                Seed Sample Groups
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  onClick={handleMigrateData}
+                  loading={migrating}
+                  className="hidden sm:inline-flex items-center gap-2"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Migrate Data
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleSeedGroups}
+                  loading={seeding}
+                  className="hidden sm:inline-flex items-center gap-2"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  Seed Sample Groups
+                </Button>
+              </>
             )}
             <Button variant="secondary" onClick={() => setShowCreateModal(true)}>
               <Plus className="w-4 h-4 mr-2" />
@@ -254,6 +296,13 @@ export default function DashboardPage() {
             </Button>
           </div>
         </div>
+
+        {/* Migration message */}
+        {migrateMessage && (
+          <div className={`mb-4 p-3 rounded-lg ${migrateMessage.includes('Migrated') ? 'bg-lime-900/30 text-lime-300' : 'bg-red-900/30 text-red-300'}`}>
+            {migrateMessage}
+          </div>
+        )}
 
         {/* Seed message */}
         {seedMessage && (
