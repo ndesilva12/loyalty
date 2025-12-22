@@ -599,27 +599,29 @@ export default function GroupPage() {
                   {group.description}
                 </p>
               )}
+            </div>
+            {/* Right side: members count + join button */}
+            <div className="flex items-center gap-3 flex-shrink-0">
               {/* Member count - clickable to show member list */}
               <button
                 onClick={() => setShowMembersModal(true)}
-                className="mt-2 flex items-center gap-1.5 text-sm text-gray-400 hover:text-white transition-colors"
+                className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-white transition-colors"
               >
                 <Users className="w-4 h-4" />
-                <span>{members.filter(m => m.status === 'accepted').length} members</span>
+                <span>{members.filter(m => m.status === 'accepted').length}</span>
               </button>
+              {/* Join button for non-members on open groups */}
+              {group.isOpen && user && !isMember && !isCaptain && (
+                <Button
+                  variant="secondary"
+                  onClick={handleJoinGroup}
+                  loading={joiningGroup}
+                >
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Join
+                </Button>
+              )}
             </div>
-            {/* Join button for non-members on open groups */}
-            {group.isOpen && user && !isMember && !isCaptain && (
-              <Button
-                variant="secondary"
-                onClick={handleJoinGroup}
-                loading={joiningGroup}
-                className="flex-shrink-0"
-              >
-                <UserPlus className="w-4 h-4 mr-2" />
-                Join Group
-              </Button>
-            )}
           </div>
         </div>
 
