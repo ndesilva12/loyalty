@@ -397,12 +397,12 @@ export default function DataTable({
                 const count = getRatingCount(obj.id, metric.id);
                 const userRating = getUserRating(obj.id, metric.id);
                 const isEditing = editingCell?.objectId === obj.id && editingCell?.metricId === metric.id;
-                const isExplicitlyDisabled = obj.disabledMetricIds?.includes(metric.id) ?? false;
 
+                // If metric is disabled for this object, show toggle to enable
                 if (!isApplicable) {
                   return (
                     <td key={metric.id} className="py-2 sm:py-3 px-2 sm:px-4 text-center">
-                      {isCaptain && onToggleMetricForObject && isExplicitlyDisabled ? (
+                      {isCaptain && onToggleMetricForObject ? (
                         <button
                           onClick={() => onToggleMetricForObject(obj.id, metric.id, true)}
                           className="text-gray-600 hover:text-lime-400 transition-colors group"

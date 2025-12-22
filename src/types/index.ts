@@ -64,8 +64,10 @@ export interface GroupObject {
   imageUrl: string | null; // Display image for the object
   objectType: ObjectType; // 'text' = simple, 'link' = has URL, 'user' = claimable profile
   linkUrl: string | null; // URL for link-type objects
-  category: string | null; // e.g., "Player", "Team" - determines which metrics apply
-  disabledMetricIds: string[]; // Metric IDs explicitly disabled for this object
+  category: string | null; // e.g., "Player", "Team" - determines default metrics
+  // Metric overrides - captain can turn any metric on/off for any object
+  disabledMetricIds: string[]; // Metric IDs explicitly disabled (overrides category defaults)
+  enabledMetricIds: string[]; // Metric IDs explicitly enabled (overrides category defaults)
   visibleInGraph: boolean; // Whether to show in graph visualization
   ratingMode: ObjectRatingMode; // How scores are calculated
   // For 'user' type objects - claim info
@@ -214,11 +216,17 @@ export const createDefaultMetric = (name: string, description: string, order: nu
 });
 
 // Helper to check if a metric applies to an object based on its category and per-object settings
+// Order of precedence: explicit disable > explicit enable > category-based default
 export const metricAppliesToObject = (metric: Metric, obj: GroupObject): boolean => {
-  // Check if metric is explicitly disabled for this object
+  // 1. Check if metric is explicitly disabled for this object
   if (obj.disabledMetricIds && obj.disabledMetricIds.includes(metric.id)) {
     return false;
   }
+  // 2. Check if metric is explicitly enabled for this object (overrides category)
+  if (obj.enabledMetricIds && obj.enabledMetricIds.includes(metric.id)) {
+    return true;
+  }
+  // 3. Fall back to category-based defaults
   // If metric has no category restrictions, it applies to all objects
   if (!metric.applicableCategories || metric.applicableCategories.length === 0) {
     return true;

@@ -424,6 +424,7 @@ export async function POST(request: Request) {
             linkUrl: null,
             category: obj.category,
             disabledMetricIds: [],
+            enabledMetricIds: [],
             visibleInGraph: true,
             ratingMode: 'group',
             claimedByClerkId: null,
