@@ -1199,7 +1199,8 @@ export async function claimObject(
   token: string,
   clerkId: string,
   name: string,
-  imageUrl: string | null
+  imageUrl: string | null,
+  email?: string
 ): Promise<{ success: boolean; objectId?: string; groupId?: string; error?: string }> {
   const claimToken = await getClaimTokenByToken(token);
 
@@ -1232,6 +1233,20 @@ export async function claimObject(
     claimedAt: Timestamp.fromDate(now),
     claimedBy: clerkId,
   });
+
+  // Add the claiming user as a member if they're not already
+  const existingMember = await getMemberByClerkId(claimToken.groupId, clerkId);
+  if (!existingMember) {
+    await addMember(
+      claimToken.groupId,
+      clerkId,
+      email || '',
+      name,
+      imageUrl,
+      'member',
+      'accepted'
+    );
+  }
 
   return {
     success: true,

@@ -92,7 +92,8 @@ export default function ClaimPage({ params }: ClaimPageProps) {
         claimToken.token,
         user.id,
         user.fullName || user.firstName || targetObject?.name || 'Member',
-        user.imageUrl
+        user.imageUrl,
+        user.emailAddresses[0]?.emailAddress || ''
       );
 
       if (result.success && result.groupId) {
