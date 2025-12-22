@@ -32,6 +32,7 @@ import Select from '@/components/ui/Select';
 import MemberGraph from '@/components/graph/MemberGraph';
 import DataTable from '@/components/graph/DataTable';
 import AddMemberForm from '@/components/groups/AddMemberForm';
+import BulkAddForm from '@/components/groups/BulkAddForm';
 import RatingForm from '@/components/groups/RatingForm';
 import { Group, GroupMember, GroupObject, Rating, AggregatedScore, ClaimRequest, Metric, MetricPrefix, MetricSuffix, PendingObject, ObjectType } from '@/types';
 import {
@@ -86,6 +87,7 @@ export default function GroupPage() {
     (initialTab === 'table' || initialTab === 'rate' || initialTab === 'graph') ? initialTab : 'graph'
   );
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
+  const [showBulkAddModal, setShowBulkAddModal] = useState(false);
   const [showClaimRequestsModal, setShowClaimRequestsModal] = useState(false);
   const [showPendingItemsModal, setShowPendingItemsModal] = useState(false);
   const [showMetricsModal, setShowMetricsModal] = useState(false);
@@ -275,6 +277,32 @@ export default function GroupPage() {
     }
 
     setShowAddMemberModal(false);
+  };
+
+  const handleBulkAddObjects = async (items: Array<{
+    email: string | null;
+    name: string;
+    placeholderImageUrl: string;
+    description: string | null;
+    itemType: ObjectType;
+    linkUrl: string | null;
+    itemCategory: string | null;
+  }>) => {
+    if (!user || !group || !isCaptain) return;
+
+    for (const item of items) {
+      await addObject(
+        groupId,
+        item.name,
+        item.description,
+        item.placeholderImageUrl || null,
+        item.itemType,
+        item.linkUrl,
+        item.itemCategory
+      );
+    }
+
+    setShowBulkAddModal(false);
   };
 
   const handleSubmitRating = async (metricId: string, targetObjectId: string, value: number) => {
@@ -795,8 +823,21 @@ export default function GroupPage() {
                       className="w-full flex items-center gap-3 px-4 py-2 text-sm text-left hover:bg-gray-700"
                     >
                       <UserPlus className="w-4 h-4" />
-                      {isCaptain ? 'Add' : 'Suggest Item'}
+                      {isCaptain ? 'Add Item' : 'Suggest Item'}
                     </button>
+                    {/* Bulk Add - captain only */}
+                    {isCaptain && (
+                      <button
+                        onClick={() => {
+                          setShowBulkAddModal(true);
+                          setShowMobileCaptainMenu(false);
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-2 text-sm text-left hover:bg-gray-700"
+                      >
+                        <UserPlus className="w-4 h-4" />
+                        Bulk Add
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
@@ -938,10 +979,18 @@ export default function GroupPage() {
             )}
             {/* Add/Suggest button - available to all members */}
             {canRate && (
-              <Button variant="secondary" onClick={() => setShowAddMemberModal(true)}>
-                <UserPlus className="w-4 h-4 mr-2" />
-                {isCaptain ? 'Add' : 'Suggest'}
-              </Button>
+              <div className="flex gap-1.5">
+                <Button variant="secondary" onClick={() => setShowAddMemberModal(true)}>
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  {isCaptain ? 'Add' : 'Suggest'}
+                </Button>
+                {isCaptain && (
+                  <Button variant="outline" onClick={() => setShowBulkAddModal(true)} title="Bulk Add">
+                    <UserPlus className="w-4 h-4" />
+                    <span className="ml-1 text-xs">+</span>
+                  </Button>
+                )}
+              </div>
             )}
           </div>
         </div>
@@ -1084,6 +1133,19 @@ export default function GroupPage() {
           onUploadImage={(file) => uploadObjectImage(groupId, file)}
           existingEmails={members.filter((m) => m.email).map((m) => m.email!.toLowerCase())}
           groupId={groupId}
+          itemCategories={group?.itemCategories || []}
+        />
+      </Modal>
+
+      {/* Bulk Add Modal */}
+      <Modal
+        isOpen={showBulkAddModal}
+        onClose={() => setShowBulkAddModal(false)}
+        title="Bulk Add Items"
+      >
+        <BulkAddForm
+          onSubmit={handleBulkAddObjects}
+          onCancel={() => setShowBulkAddModal(false)}
           itemCategories={group?.itemCategories || []}
         />
       </Modal>
