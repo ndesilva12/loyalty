@@ -97,13 +97,12 @@ export default function DashboardPage() {
     // Add the captain as the first member
     await addMember(
       group.id,
+      user.id, // clerkId
       user.emailAddresses[0]?.emailAddress || '',
       user.fullName || user.firstName || 'Captain',
-      null, // placeholderImageUrl
-      user.id, // clerkId
-      'accepted', // status
-      user.imageUrl, // imageUrl (uses Google auth image if available)
-      true // isCaptain
+      user.imageUrl || null, // imageUrl
+      'captain', // role
+      'accepted' // status
     );
 
     setShowCreateModal(false);
@@ -118,7 +117,9 @@ export default function DashboardPage() {
         invitation.id,
         accept,
         user.id,
-        user.imageUrl
+        user.emailAddresses[0]?.emailAddress || '',
+        user.fullName || user.firstName || 'Member',
+        user.imageUrl || null
       );
       loadData();
     } catch (error) {
