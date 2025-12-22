@@ -517,6 +517,18 @@ export default function GroupPage() {
       <Header />
 
       <main className={`flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-2 sm:py-8 ${viewMode === 'graph' ? 'flex flex-col overflow-hidden' : ''}`}>
+        {/* Group title and description - shown above all controls */}
+        <div className="mb-3 sm:mb-4">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-white truncate">
+            {group.name}
+          </h1>
+          {group.description && (
+            <p className="text-sm sm:text-base text-gray-400 mt-1 line-clamp-2">
+              {group.description}
+            </p>
+          )}
+        </div>
+
         {/* Mobile header - back + axis selectors + menu */}
         <div className="flex sm:hidden items-center justify-between mb-3">
           <Link

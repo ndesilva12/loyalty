@@ -235,11 +235,31 @@ export default function DashboardPage() {
               Manage your groups and view member ratings
             </p>
           </div>
-          <Button variant="secondary" onClick={() => setShowCreateModal(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            New Group
-          </Button>
+          <div className="flex items-center gap-3">
+            {user && (
+              <Button
+                variant="outline"
+                onClick={handleSeedGroups}
+                loading={seeding}
+                className="hidden sm:inline-flex items-center gap-2"
+              >
+                <Sparkles className="w-4 h-4" />
+                Seed Sample Groups
+              </Button>
+            )}
+            <Button variant="secondary" onClick={() => setShowCreateModal(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              New Group
+            </Button>
+          </div>
         </div>
+
+        {/* Seed message */}
+        {seedMessage && (
+          <div className={`mb-4 p-3 rounded-lg ${seedMessage.includes('Created') ? 'bg-lime-900/30 text-lime-300' : 'bg-red-900/30 text-red-300'}`}>
+            {seedMessage}
+          </div>
+        )}
 
         {/* Groups Grid */}
         {user && groups.length === 0 ? (
