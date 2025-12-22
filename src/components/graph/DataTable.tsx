@@ -3,7 +3,7 @@
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { Eye, EyeOff, Anchor, Pencil, Check, X, Camera, Trash2, Link2, Mail, User, Settings, Users, ChevronUp, ChevronDown } from 'lucide-react';
-import { GroupMember, Metric, AggregatedScore, Rating, MemberDisplayMode, MemberRatingMode, getMemberDisplayName, getMemberDisplayImage } from '@/types';
+import { GroupMember, Metric, AggregatedScore, Rating, MemberDisplayMode, MemberRatingMode, getMemberDisplayName, getMemberDisplayImage, metricAppliesToItem } from '@/types';
 import Avatar from '@/components/ui/Avatar';
 import Button from '@/components/ui/Button';
 
@@ -448,15 +448,33 @@ export default function DataTable({
                           <Anchor className="w-3 h-3 text-emerald-400 flex-shrink-0" />
                         )}
                       </div>
+                      {member.itemCategory && (
+                        <span className="text-[9px] sm:text-[10px] px-1 py-0.5 bg-gray-700 text-gray-400 rounded mt-0.5 inline-block">
+                          {member.itemCategory}
+                        </span>
+                      )}
                     </div>
                   </Link>
                 )}
               </td>
               {metrics.map((metric) => {
+                const isApplicable = metricAppliesToItem(metric, member);
                 const score = getScore(member.id, metric.id);
                 const count = getRatingCount(member.id, metric.id);
                 const userRating = getUserRating(member.id, metric.id);
                 const isEditing = editingCell?.memberId === member.id && editingCell?.metricId === metric.id;
+
+                // If metric doesn't apply to this member, show a dash
+                if (!isApplicable) {
+                  return (
+                    <td
+                      key={metric.id}
+                      className="py-2 sm:py-3 px-2 sm:px-4 text-center"
+                    >
+                      <span className="text-gray-600 text-sm">—</span>
+                    </td>
+                  );
+                }
 
                 return (
                   <td
@@ -509,8 +527,8 @@ export default function DataTable({
                       </div>
                     ) : (
                       <div
-                        className={`${canRate && onSubmitRating ? 'cursor-pointer hover:bg-gray-700 rounded-lg p-1.5 -m-1.5 transition-colors' : ''}`}
-                        onClick={() => canRate && onSubmitRating && handleStartEdit(member.id, metric.id)}
+                        className={`${canRate && onSubmitRating && isApplicable ? 'cursor-pointer hover:bg-gray-700 rounded-lg p-1.5 -m-1.5 transition-colors' : ''}`}
+                        onClick={() => canRate && onSubmitRating && isApplicable && handleStartEdit(member.id, metric.id)}
                       >
                         <div className={`font-semibold text-sm ${getScoreColor(score, metric)}`}>
                           {metric.prefix}{score.toFixed(1)}{metric.suffix}

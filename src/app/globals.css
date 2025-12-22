@@ -167,13 +167,28 @@ body {
 }
 
 /* Clerk User Button Popover Dark Theme */
-.cl-userButtonPopoverCard {
+.cl-userButtonPopoverCard,
+.cl-userButtonPopoverCard__userButton,
+[data-clerk-component="user-button"] .cl-card,
+.cl-rootBox .cl-card {
   background-color: #111827 !important;
+  background: #111827 !important;
   border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+.cl-userButtonPopoverMain {
+  background-color: #111827 !important;
+  background: #111827 !important;
+}
+
+.cl-userButtonPopoverActions {
+  background-color: #111827 !important;
+  background: #111827 !important;
 }
 
 .cl-userButtonPopoverActionButton {
   color: #d1d5db !important;
+  background-color: transparent !important;
 }
 
 .cl-userButtonPopoverActionButton:hover {
@@ -189,6 +204,11 @@ body {
   color: #9ca3af !important;
 }
 
+.cl-userPreview {
+  background-color: #111827 !important;
+  background: #111827 !important;
+}
+
 .cl-userPreviewMainIdentifier {
   color: white !important;
 }
@@ -199,4 +219,12 @@ body {
 
 .cl-userButtonPopoverFooter {
   display: none !important;
+}
+
+/* Force all internal popover elements to dark background */
+.cl-internal-b3fm6y,
+.cl-internal-oaq4v7,
+[class*="cl-internal-"] {
+  background-color: #111827 !important;
+  background: #111827 !important;
 }

@@ -2,6 +2,52 @@ import { NextResponse } from 'next/server';
 import { collection, doc, setDoc, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
+// Mock items for each group
+const mockItems: Record<string, Array<{ name: string; category: string | null; description?: string }>> = {
+  'nba-best': [
+    { name: 'LeBron James', category: 'Player', description: 'Los Angeles Lakers forward' },
+    { name: 'Stephen Curry', category: 'Player', description: 'Golden State Warriors guard' },
+    { name: 'Giannis Antetokounmpo', category: 'Player', description: 'Milwaukee Bucks forward' },
+    { name: 'Kevin Durant', category: 'Player', description: 'Phoenix Suns forward' },
+    { name: 'Luka Doncic', category: 'Player', description: 'Dallas Mavericks guard' },
+    { name: 'Boston Celtics', category: 'Team', description: '2024 NBA Champions' },
+    { name: 'Denver Nuggets', category: 'Team', description: '2023 NBA Champions' },
+    { name: 'Los Angeles Lakers', category: 'Team', description: '17-time NBA Champions' },
+    { name: 'Golden State Warriors', category: 'Team', description: '7-time NBA Champions' },
+  ],
+  'nfl-best': [
+    { name: 'Patrick Mahomes', category: 'Player', description: 'Kansas City Chiefs quarterback' },
+    { name: 'Josh Allen', category: 'Player', description: 'Buffalo Bills quarterback' },
+    { name: 'Travis Kelce', category: 'Player', description: 'Kansas City Chiefs tight end' },
+    { name: 'Tyreek Hill', category: 'Player', description: 'Miami Dolphins wide receiver' },
+    { name: 'Micah Parsons', category: 'Player', description: 'Dallas Cowboys linebacker' },
+    { name: 'Kansas City Chiefs', category: 'Team', description: 'Back-to-back Super Bowl Champions' },
+    { name: 'San Francisco 49ers', category: 'Team', description: 'NFC powerhouse' },
+    { name: 'Philadelphia Eagles', category: 'Team', description: 'NFC East contender' },
+    { name: 'Detroit Lions', category: 'Team', description: 'NFC North rising team' },
+  ],
+  'presidential-2028': [
+    { name: 'Gavin Newsom', category: null, description: 'Governor of California' },
+    { name: 'Ron DeSantis', category: null, description: 'Governor of Florida' },
+    { name: 'J.D. Vance', category: null, description: 'Vice President' },
+    { name: 'Josh Shapiro', category: null, description: 'Governor of Pennsylvania' },
+    { name: 'Gretchen Whitmer', category: null, description: 'Governor of Michigan' },
+    { name: 'Tim Scott', category: null, description: 'Senator from South Carolina' },
+  ],
+  'oscars-2026': [
+    { name: 'Timothée Chalamet', category: 'Actor', description: 'Dune, Wonka' },
+    { name: 'Florence Pugh', category: 'Actor', description: 'Oppenheimer, Little Women' },
+    { name: 'Margot Robbie', category: 'Actor', description: 'Barbie, Once Upon a Time' },
+    { name: 'Cillian Murphy', category: 'Actor', description: 'Oppenheimer Best Actor winner' },
+    { name: 'Dune: Part Two', category: 'Movie', description: 'Denis Villeneuve epic' },
+    { name: 'Oppenheimer', category: 'Movie', description: 'Christopher Nolan biopic' },
+    { name: 'Barbie', category: 'Movie', description: 'Greta Gerwig film' },
+    { name: 'Denis Villeneuve', category: 'Director', description: 'Dune, Blade Runner 2049' },
+    { name: 'Christopher Nolan', category: 'Director', description: 'Oppenheimer, The Dark Knight' },
+    { name: 'Greta Gerwig', category: 'Director', description: 'Barbie, Little Women' },
+  ],
+};
+
 // Mock data for featured groups
 const mockGroups = [
   {
@@ -352,9 +398,38 @@ export async function POST(request: Request) {
         ratingMode: 'group',
       });
 
+      // Add mock items to the group
+      const items = mockItems[groupData.id] || [];
+      for (const item of items) {
+        const itemRef = doc(collection(db, 'groups', groupData.id, 'members'));
+        await setDoc(itemRef, {
+          groupId: groupData.id,
+          userId: `item_${item.name.toLowerCase().replace(/\s+/g, '_')}`,
+          clerkId: null,
+          email: null,
+          name: item.name,
+          imageUrl: null,
+          placeholderImageUrl: null,
+          description: item.description || null,
+          status: 'placeholder',
+          visibleInGraph: true,
+          isCaptain: false,
+          invitedAt: now,
+          respondedAt: null,
+          itemType: 'text',
+          linkUrl: null,
+          itemCategory: item.category,
+          displayMode: 'custom',
+          customName: null,
+          customImageUrl: null,
+          ratingMode: 'group',
+        });
+      }
+
       createdGroups.push({
         id: groupData.id,
         name: groupData.name,
+        itemCount: items.length,
       });
     }
 
