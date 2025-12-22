@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
-import { collection, doc, setDoc, getDocs, deleteDoc, Timestamp } from 'firebase/firestore';
+import { collection, doc, setDoc, getDocs, deleteDoc, Timestamp, query, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { v4 as uuidv4 } from 'uuid';
+
+// Use the same top-level collections as the rest of the app
+const membersCollection = collection(db, 'members');
 
 // Mock items for each group
 const mockItems: Record<string, Array<{ name: string; category: string | null; description?: string }>> = {
@@ -365,8 +369,9 @@ export async function POST(request: Request) {
     for (const groupData of mockGroups) {
       const groupRef = doc(collection(db, 'groups'), groupData.id);
 
-      // First, delete all existing members in this group to start fresh
-      const existingMembersSnapshot = await getDocs(collection(db, 'groups', groupData.id, 'members'));
+      // First, delete all existing members in this group from the TOP-LEVEL members collection
+      const existingMembersQuery = query(membersCollection, where('groupId', '==', groupData.id));
+      const existingMembersSnapshot = await getDocs(existingMembersQuery);
       for (const memberDoc of existingMembersSnapshot.docs) {
         await deleteDoc(memberDoc.ref);
       }
@@ -379,9 +384,10 @@ export async function POST(request: Request) {
         lastActivityAt: sevenDaysAgo, // Set to recent for trending
       });
 
-      // Add captain as a member
-      const memberRef = doc(collection(db, 'groups', groupData.id, 'members'));
-      await setDoc(memberRef, {
+      // Add captain as a member to the TOP-LEVEL members collection
+      const captainMemberId = uuidv4();
+      const captainMemberRef = doc(membersCollection, captainMemberId);
+      await setDoc(captainMemberRef, {
         groupId: groupData.id,
         userId: captainClerkId,
         clerkId: captainClerkId,
@@ -398,18 +404,20 @@ export async function POST(request: Request) {
         itemType: 'user',
         linkUrl: null,
         itemCategory: null,
+        disabledMetricIds: [],
         displayMode: 'user',
         customName: null,
         customImageUrl: null,
         ratingMode: 'group',
       });
 
-      // Add mock items to the group
+      // Add mock items to the TOP-LEVEL members collection
       const items = mockItems[groupData.id] || [];
       let addedItems = 0;
       for (const item of items) {
         try {
-          const itemRef = doc(collection(db, 'groups', groupData.id, 'members'));
+          const itemMemberId = uuidv4();
+          const itemRef = doc(membersCollection, itemMemberId);
           await setDoc(itemRef, {
             groupId: groupData.id,
             userId: `item_${item.name.toLowerCase().replace(/\s+/g, '_')}`,
@@ -431,7 +439,7 @@ export async function POST(request: Request) {
             customName: null,
             customImageUrl: null,
             ratingMode: 'group',
-            disabledMetricIds: [], // Per-item metric control
+            disabledMetricIds: [],
           });
           addedItems++;
         } catch (itemError) {
