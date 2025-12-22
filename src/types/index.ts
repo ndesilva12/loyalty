@@ -52,38 +52,46 @@ export interface Metric {
   applicableCategories: string[]; // Which item categories this metric applies to (empty = all items)
 }
 
-export type MemberDisplayMode = 'user' | 'custom';
-export type MemberRatingMode = 'captain' | 'group'; // 'captain' = only captain's rating counts, 'group' = average of all ratings
-export type ItemType = 'text' | 'link' | 'user'; // Type of item in the group
+// ============ OBJECTS (things to rate in a group) ============
+export type ObjectType = 'text' | 'link' | 'user'; // 'user' = can be claimed by a real user
+export type ObjectRatingMode = 'captain' | 'group'; // 'captain' = only captain's rating, 'group' = average of all ratings
+
+export interface GroupObject {
+  id: string;
+  groupId: string;
+  name: string;
+  description: string | null;
+  imageUrl: string | null; // Display image for the object
+  objectType: ObjectType; // 'text' = simple, 'link' = has URL, 'user' = claimable profile
+  linkUrl: string | null; // URL for link-type objects
+  category: string | null; // e.g., "Player", "Team" - determines which metrics apply
+  disabledMetricIds: string[]; // Metric IDs explicitly disabled for this object
+  visibleInGraph: boolean; // Whether to show in graph visualization
+  ratingMode: ObjectRatingMode; // How scores are calculated
+  // For 'user' type objects - claim info
+  claimedByClerkId: string | null; // Clerk ID of user who claimed this object
+  claimedByName: string | null; // Name shown after claim
+  claimedByImageUrl: string | null; // Image shown after claim
+  claimStatus: 'unclaimed' | 'pending' | 'claimed'; // Claim state
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// ============ MEMBERS (users who belong to a group) ============
+export type MemberRole = 'captain' | 'co-captain' | 'member';
+export type MemberStatus = 'pending' | 'accepted' | 'declined';
 
 export interface GroupMember {
   id: string;
   groupId: string;
-  userId: string; // Can be a placeholder user ID or actual user ID
-  clerkId: string | null; // null if placeholder
-  email: string | null; // Optional - not every member needs to be a real user
+  clerkId: string; // Always a real user
+  email: string;
   name: string;
   imageUrl: string | null;
-  placeholderImageUrl: string | null;
-  description: string | null; // Short description set by captain
-  status: 'pending' | 'accepted' | 'declined' | 'placeholder';
-  visibleInGraph: boolean; // Whether to show this member in the graph visualization
-  isCaptain: boolean; // Whether this member is the group captain
+  role: MemberRole;
+  status: MemberStatus;
   invitedAt: Date;
   respondedAt: Date | null;
-  // Item type - determines what kind of item this is
-  itemType: ItemType; // 'text' = simple item, 'link' = has URL, 'user' = claimable by a user
-  linkUrl: string | null; // URL for link-type items
-  // Item category - determines which metrics apply to this item
-  itemCategory: string | null; // e.g., "Player", "Team", "Actor", "Movie" (null = all metrics apply)
-  // Per-item metric control - allows disabling specific metrics for this item
-  disabledMetricIds: string[]; // Metric IDs that are explicitly disabled for this item
-  // Captain-controlled display settings
-  displayMode: MemberDisplayMode; // 'user' = show actual profile, 'custom' = show captain-set values
-  customName: string | null; // Captain-set display name (used when displayMode is 'custom')
-  customImageUrl: string | null; // Captain-set display image (used when displayMode is 'custom')
-  // Rating mode - determines how scores are calculated for this member
-  ratingMode: MemberRatingMode; // 'captain' = only captain's rating, 'group' = average of all ratings
 }
 
 export interface Rating {
@@ -91,14 +99,14 @@ export interface Rating {
   groupId: string;
   metricId: string;
   raterId: string; // Who is giving the rating (Clerk ID)
-  targetMemberId: string; // Who is being rated (GroupMember ID)
+  targetObjectId: string; // The object being rated (GroupObject ID)
   value: number; // Between metric's minValue and maxValue
   createdAt: Date;
   updatedAt: Date;
 }
 
 export interface AggregatedScore {
-  memberId: string;
+  objectId: string;
   metricId: string;
   averageValue: number;
   totalRatings: number;
@@ -107,7 +115,7 @@ export interface AggregatedScore {
 export interface ClaimRequest {
   id: string;
   groupId: string;
-  placeholderMemberId: string; // The placeholder they want to claim
+  objectId: string; // The user-type object they want to claim
   claimantClerkId: string; // Who is trying to claim
   status: 'pending' | 'approved' | 'rejected';
   createdAt: Date;
@@ -119,7 +127,6 @@ export interface Invitation {
   groupId: string;
   groupName: string;
   email: string;
-  memberId: string; // The member record created for this invite
   invitedBy: string; // Clerk ID of inviter
   invitedByName: string;
   status: 'pending' | 'accepted' | 'declined';
@@ -130,7 +137,7 @@ export interface Invitation {
 export interface ClaimToken {
   id: string;
   groupId: string;
-  memberId: string; // The placeholder member to claim
+  objectId: string; // The user-type object to claim
   email: string | null; // Target email (null if shareable link)
   token: string; // Unique token for the claim link
   createdBy: string; // Captain's clerk ID
@@ -140,13 +147,16 @@ export interface ClaimToken {
   claimedBy: string | null; // Clerk ID of who claimed it
 }
 
-// Pending item submitted by non-captain, awaiting approval
-export interface PendingItem {
+// Pending object submitted by non-captain, awaiting approval
+export interface PendingObject {
   id: string;
   groupId: string;
   name: string;
   description: string | null;
   imageUrl: string | null;
+  objectType: ObjectType;
+  linkUrl: string | null;
+  category: string | null;
   submittedBy: string; // Clerk ID of who submitted it
   submittedByName: string; // Name of submitter for display
   status: 'pending' | 'approved' | 'rejected';
@@ -156,8 +166,8 @@ export interface PendingItem {
 }
 
 // Graph visualization types
-export interface PlottedMember {
-  member: GroupMember;
+export interface PlottedObject {
+  object: GroupObject;
   xValue: number;
   yValue: number;
   xMetric: Metric;
@@ -176,15 +186,18 @@ export interface CreateGroupForm {
   metrics: Omit<Metric, 'id'>[];
 }
 
-export interface AddMemberForm {
-  email: string;
+export interface AddObjectForm {
   name: string;
-  placeholderImageUrl?: string;
+  description?: string;
+  imageUrl?: string;
+  objectType: ObjectType;
+  linkUrl?: string;
+  category?: string;
 }
 
 export interface RatingForm {
   metricId: string;
-  targetMemberId: string;
+  targetObjectId: string;
   value: number;
 }
 
@@ -200,22 +213,22 @@ export const createDefaultMetric = (name: string, description: string, order: nu
   applicableCategories,
 });
 
-// Helper to check if a metric applies to an item based on its category and per-item settings
-export const metricAppliesToItem = (metric: Metric, item: GroupMember): boolean => {
-  // Check if metric is explicitly disabled for this item
-  if (item.disabledMetricIds && item.disabledMetricIds.includes(metric.id)) {
+// Helper to check if a metric applies to an object based on its category and per-object settings
+export const metricAppliesToObject = (metric: Metric, obj: GroupObject): boolean => {
+  // Check if metric is explicitly disabled for this object
+  if (obj.disabledMetricIds && obj.disabledMetricIds.includes(metric.id)) {
     return false;
   }
-  // If metric has no category restrictions, it applies to all items
+  // If metric has no category restrictions, it applies to all objects
   if (!metric.applicableCategories || metric.applicableCategories.length === 0) {
     return true;
   }
-  // If item has no category, all metrics apply
-  if (!item.itemCategory) {
+  // If object has no category, all metrics apply
+  if (!obj.category) {
     return true;
   }
-  // Check if item's category is in the metric's applicable categories
-  return metric.applicableCategories.includes(item.itemCategory);
+  // Check if object's category is in the metric's applicable categories
+  return metric.applicableCategories.includes(obj.category);
 };
 
 // Helper to format metric value with prefix/suffix
@@ -223,18 +236,58 @@ export const formatMetricValue = (value: number, metric: Metric): string => {
   return `${metric.prefix}${value}${metric.suffix}`;
 };
 
-// Helper to get display name for a member (respects displayMode)
-export const getMemberDisplayName = (member: GroupMember): string => {
-  if (member.displayMode === 'custom' && member.customName) {
-    return member.customName;
+// Helper to get display name for an object (uses claimed name if claimed, otherwise object name)
+export const getObjectDisplayName = (obj: GroupObject): string => {
+  if (obj.objectType === 'user' && obj.claimStatus === 'claimed' && obj.claimedByName) {
+    return obj.claimedByName;
   }
-  return member.name;
+  return obj.name;
 };
 
-// Helper to get display image for a member (respects displayMode)
-export const getMemberDisplayImage = (member: GroupMember): string | null => {
-  if (member.displayMode === 'custom' && member.customImageUrl) {
-    return member.customImageUrl;
+// Helper to get display image for an object (uses claimed image if claimed)
+export const getObjectDisplayImage = (obj: GroupObject): string | null => {
+  if (obj.objectType === 'user' && obj.claimStatus === 'claimed' && obj.claimedByImageUrl) {
+    return obj.claimedByImageUrl;
   }
-  return member.imageUrl || member.placeholderImageUrl;
+  return obj.imageUrl;
+};
+
+// Helper to check if a user can rate in a group based on group settings and membership
+export const canUserRate = (
+  group: Group,
+  userClerkId: string | null,
+  members: GroupMember[]
+): boolean => {
+  // If group is open, anyone can rate (even non-logged-in users could rate if we allowed it)
+  if (group.isOpen) {
+    return userClerkId !== null; // Just need to be logged in
+  }
+  // If group is closed, must be a member
+  if (!userClerkId) return false;
+  // Captain and co-captains can always rate
+  if (group.captainId === userClerkId || group.coCaptainIds.includes(userClerkId)) {
+    return true;
+  }
+  // Check if user is an accepted member
+  return members.some(m => m.clerkId === userClerkId && m.status === 'accepted');
+};
+
+// Helper to check if a user can view a group
+export const canUserView = (
+  group: Group,
+  userClerkId: string | null,
+  members: GroupMember[]
+): boolean => {
+  // Public groups can be viewed by anyone
+  if (group.isPublic) {
+    return true;
+  }
+  // Private groups require membership
+  if (!userClerkId) return false;
+  // Captain and co-captains can always view
+  if (group.captainId === userClerkId || group.coCaptainIds.includes(userClerkId)) {
+    return true;
+  }
+  // Check if user is an accepted member
+  return members.some(m => m.clerkId === userClerkId && m.status === 'accepted');
 };

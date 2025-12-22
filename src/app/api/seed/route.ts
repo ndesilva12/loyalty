@@ -4,10 +4,11 @@ import { db } from '@/lib/firebase';
 import { v4 as uuidv4 } from 'uuid';
 
 // Use the same top-level collections as the rest of the app
-const membersCollection = collection(db, 'members');
+const objectsCollection = collection(db, 'objects'); // Things to rate
+const membersCollection = collection(db, 'members'); // Users in groups
 
-// Mock items for each group
-const mockItems: Record<string, Array<{ name: string; category: string | null; description?: string }>> = {
+// Mock objects for each group (the things being rated)
+const mockObjects: Record<string, Array<{ name: string; category: string | null; description?: string }>> = {
   'nba-best': [
     { name: 'LeBron James', category: 'Player', description: 'Los Angeles Lakers forward' },
     { name: 'Stephen Curry', category: 'Player', description: 'Golden State Warriors guard' },
@@ -369,13 +370,21 @@ export async function POST(request: Request) {
     for (const groupData of mockGroups) {
       const groupRef = doc(collection(db, 'groups'), groupData.id);
 
-      // First, delete all existing members in this group from the TOP-LEVEL members collection
+      // Delete existing objects for this group
+      const existingObjectsQuery = query(objectsCollection, where('groupId', '==', groupData.id));
+      const existingObjectsSnapshot = await getDocs(existingObjectsQuery);
+      for (const objectDoc of existingObjectsSnapshot.docs) {
+        await deleteDoc(objectDoc.ref);
+      }
+
+      // Delete existing members for this group (old data cleanup)
       const existingMembersQuery = query(membersCollection, where('groupId', '==', groupData.id));
       const existingMembersSnapshot = await getDocs(existingMembersQuery);
       for (const memberDoc of existingMembersSnapshot.docs) {
         await deleteDoc(memberDoc.ref);
       }
 
+      // Create the group
       await setDoc(groupRef, {
         ...groupData,
         captainId: captainClerkId,
@@ -384,80 +393,63 @@ export async function POST(request: Request) {
         lastActivityAt: sevenDaysAgo, // Set to recent for trending
       });
 
-      // Add captain as a member to the TOP-LEVEL members collection
+      // Add captain as a member (real user membership record)
       const captainMemberId = uuidv4();
       const captainMemberRef = doc(membersCollection, captainMemberId);
       await setDoc(captainMemberRef, {
         groupId: groupData.id,
-        userId: captainClerkId,
         clerkId: captainClerkId,
         email: captainEmail,
         name: 'Captain',
         imageUrl: null,
-        placeholderImageUrl: null,
-        description: null,
+        role: 'captain',
         status: 'accepted',
-        visibleInGraph: true,
-        isCaptain: true,
         invitedAt: now,
         respondedAt: now,
-        itemType: 'user',
-        linkUrl: null,
-        itemCategory: null,
-        disabledMetricIds: [],
-        displayMode: 'user',
-        customName: null,
-        customImageUrl: null,
-        ratingMode: 'group',
       });
 
-      // Add mock items to the TOP-LEVEL members collection
-      const items = mockItems[groupData.id] || [];
-      let addedItems = 0;
-      for (const item of items) {
+      // Add mock objects (the things to be rated)
+      const objects = mockObjects[groupData.id] || [];
+      let addedObjects = 0;
+      for (const obj of objects) {
         try {
-          const itemMemberId = uuidv4();
-          const itemRef = doc(membersCollection, itemMemberId);
-          await setDoc(itemRef, {
+          const objectId = uuidv4();
+          const objectRef = doc(objectsCollection, objectId);
+          await setDoc(objectRef, {
             groupId: groupData.id,
-            userId: `item_${item.name.toLowerCase().replace(/\s+/g, '_')}`,
-            clerkId: null,
-            email: null,
-            name: item.name,
+            name: obj.name,
+            description: obj.description || null,
             imageUrl: null,
-            placeholderImageUrl: null,
-            description: item.description || null,
-            status: 'placeholder',
-            visibleInGraph: true,
-            isCaptain: false,
-            invitedAt: now,
-            respondedAt: null,
-            itemType: 'text',
+            objectType: 'text',
             linkUrl: null,
-            itemCategory: item.category,
-            displayMode: 'custom',
-            customName: null,
-            customImageUrl: null,
-            ratingMode: 'group',
+            category: obj.category,
             disabledMetricIds: [],
+            visibleInGraph: true,
+            ratingMode: 'group',
+            claimedByClerkId: null,
+            claimedByName: null,
+            claimedByImageUrl: null,
+            claimStatus: 'unclaimed',
+            createdAt: now,
+            updatedAt: now,
           });
-          addedItems++;
-        } catch (itemError) {
-          console.error(`Failed to add item ${item.name}:`, itemError);
+          addedObjects++;
+        } catch (objectError) {
+          console.error(`Failed to add object ${obj.name}:`, objectError);
         }
       }
 
       createdGroups.push({
         id: groupData.id,
         name: groupData.name,
-        itemCount: addedItems,
-        expectedItems: items.length,
+        objectCount: addedObjects,
+        expectedObjects: objects.length,
       });
     }
 
     return NextResponse.json({
       success: true,
-      message: `Created ${createdGroups.length} mock groups`,
+      message: `Created ${createdGroups.length} mock groups with objects`,
       groups: createdGroups,
     });
   } catch (error) {
