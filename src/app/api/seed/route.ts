@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { collection, doc, setDoc, Timestamp } from 'firebase/firestore';
+import { collection, doc, setDoc, getDocs, deleteDoc, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 // Mock items for each group
@@ -364,6 +364,12 @@ export async function POST(request: Request) {
 
     for (const groupData of mockGroups) {
       const groupRef = doc(collection(db, 'groups'), groupData.id);
+
+      // First, delete all existing members in this group to start fresh
+      const existingMembersSnapshot = await getDocs(collection(db, 'groups', groupData.id, 'members'));
+      for (const memberDoc of existingMembersSnapshot.docs) {
+        await deleteDoc(memberDoc.ref);
+      }
 
       await setDoc(groupRef, {
         ...groupData,
