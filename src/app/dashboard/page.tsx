@@ -88,6 +88,7 @@ export default function DashboardPage() {
       maxValue: m.maxValue ?? 100,
       prefix: (m.prefix ?? '') as '' | '#' | '$' | '€' | '£',
       suffix: (m.suffix ?? '') as '' | '%' | 'K' | 'M' | 'B' | 'T' | ' thousand' | ' million' | ' billion' | ' trillion',
+      applicableCategories: [],
     }));
     const group = await createGroup(user.id, data.name, data.description, metricsWithDefaults);
 
