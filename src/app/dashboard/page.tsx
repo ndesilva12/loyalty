@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useUser } from '@clerk/nextjs';
 import Link from 'next/link';
-import { Plus, Users, ChevronRight, Bell, TrendingUp, Flame, Eye } from 'lucide-react';
+import { Plus, Users, ChevronRight, Bell, TrendingUp, Flame, Eye, Lock, LockOpen } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
@@ -243,10 +243,18 @@ export default function DashboardPage() {
                               {group.description}
                             </p>
                           )}
-                          <div className="flex items-center gap-4 text-sm">
+                          <div className="flex items-center gap-2 text-sm">
                             <span className="flex items-center gap-1.5 px-3 py-1 bg-gray-100 dark:bg-gray-800 rounded-full text-gray-600 dark:text-gray-400">
                               <span className="font-medium">{group.metrics.length}</span>
                               <span>metrics</span>
+                            </span>
+                            <span className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs ${
+                              group.isOpen
+                                ? 'bg-lime-900/30 text-lime-400'
+                                : 'bg-gray-700 text-gray-400'
+                            }`}>
+                              {group.isOpen ? <LockOpen className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
+                              {group.isOpen ? 'Open' : 'Closed'}
                             </span>
                           </div>
                         </div>
@@ -288,7 +296,7 @@ export default function DashboardPage() {
                               {group.description}
                             </p>
                           )}
-                          <div className="flex items-center gap-3 text-xs">
+                          <div className="flex items-center gap-2 text-xs flex-wrap">
                             <span className="flex items-center gap-1 text-gray-400">
                               <Eye className="w-3.5 h-3.5" />
                               {group.viewCount || 0}
@@ -296,6 +304,14 @@ export default function DashboardPage() {
                             <span className="flex items-center gap-1 text-gray-400">
                               <TrendingUp className="w-3.5 h-3.5" />
                               {group.ratingCount || 0} ratings
+                            </span>
+                            <span className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] ${
+                              group.isOpen
+                                ? 'bg-lime-900/30 text-lime-400'
+                                : 'bg-gray-700 text-gray-400'
+                            }`}>
+                              {group.isOpen ? <LockOpen className="w-2.5 h-2.5" /> : <Lock className="w-2.5 h-2.5" />}
+                              {group.isOpen ? 'Open' : 'Closed'}
                             </span>
                           </div>
                         </div>
@@ -343,7 +359,7 @@ export default function DashboardPage() {
                               {group.description}
                             </p>
                           )}
-                          <div className="flex items-center gap-3 text-xs">
+                          <div className="flex items-center gap-2 text-xs flex-wrap">
                             <span className="flex items-center gap-1 text-gray-400">
                               <Eye className="w-3.5 h-3.5" />
                               {group.viewCount || 0}
@@ -351,6 +367,14 @@ export default function DashboardPage() {
                             <span className="flex items-center gap-1 text-gray-400">
                               <TrendingUp className="w-3.5 h-3.5" />
                               {group.ratingCount || 0} ratings
+                            </span>
+                            <span className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] ${
+                              group.isOpen
+                                ? 'bg-lime-900/30 text-lime-400'
+                                : 'bg-gray-700 text-gray-400'
+                            }`}>
+                              {group.isOpen ? <LockOpen className="w-2.5 h-2.5" /> : <Lock className="w-2.5 h-2.5" />}
+                              {group.isOpen ? 'Open' : 'Closed'}
                             </span>
                           </div>
                         </div>
