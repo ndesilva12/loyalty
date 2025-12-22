@@ -456,7 +456,7 @@ export async function addMember(
   email: string,
   name: string,
   imageUrl: string | null = null,
-  role: MemberRole = 'member',
+  role: MemberRole = 'follower',
   status: 'pending' | 'accepted' = 'pending'
 ): Promise<GroupMember> {
   const memberId = uuidv4();
@@ -497,16 +497,16 @@ export async function getGroupMembers(groupId: string): Promise<GroupMember[]> {
       email: data.email,
       name: data.name,
       imageUrl: data.imageUrl ?? null,
-      role: data.role ?? (data.isCaptain ? 'captain' : 'member'),
+      role: data.role ?? (data.isCaptain ? 'captain' : 'follower'),
       status: data.status === 'placeholder' ? 'accepted' : (data.status ?? 'accepted'),
       invitedAt: convertTimestamp(data.invitedAt),
       respondedAt: data.respondedAt ? convertTimestamp(data.respondedAt) : null,
     } as GroupMember;
   });
 
-  // Sort: captain first, then co-captains, then members, then followers
-  const roleOrder: Record<string, number> = { captain: 0, 'co-captain': 1, member: 2, follower: 3 };
-  return members.sort((a, b) => (roleOrder[a.role] ?? 4) - (roleOrder[b.role] ?? 4));
+  // Sort: captain first, then co-captains, then followers
+  const roleOrder: Record<string, number> = { captain: 0, 'co-captain': 1, follower: 2 };
+  return members.sort((a, b) => (roleOrder[a.role] ?? 3) - (roleOrder[b.role] ?? 3));
 }
 
 export async function getMember(memberId: string): Promise<GroupMember | null> {
@@ -521,7 +521,7 @@ export async function getMember(memberId: string): Promise<GroupMember | null> {
     email: data.email,
     name: data.name,
     imageUrl: data.imageUrl ?? null,
-    role: data.role ?? (data.isCaptain ? 'captain' : 'member'),
+    role: data.role ?? (data.isCaptain ? 'captain' : 'follower'),
     status: data.status === 'placeholder' ? 'accepted' : (data.status ?? 'accepted'),
     invitedAt: convertTimestamp(data.invitedAt),
     respondedAt: data.respondedAt ? convertTimestamp(data.respondedAt) : null,
@@ -546,7 +546,7 @@ export async function getMemberByClerkId(groupId: string, clerkId: string): Prom
     email: data.email,
     name: data.name,
     imageUrl: data.imageUrl ?? null,
-    role: data.role ?? (data.isCaptain ? 'captain' : 'member'),
+    role: data.role ?? (data.isCaptain ? 'captain' : 'follower'),
     status: data.status === 'placeholder' ? 'accepted' : (data.status ?? 'accepted'),
     invitedAt: convertTimestamp(data.invitedAt),
     respondedAt: data.respondedAt ? convertTimestamp(data.respondedAt) : null,
@@ -597,43 +597,6 @@ export async function unfollowGroup(groupId: string, clerkId: string): Promise<v
 export async function isFollowingGroup(groupId: string, clerkId: string): Promise<boolean> {
   const member = await getMemberByClerkId(groupId, clerkId);
   return member !== null && member.role === 'follower';
-}
-
-// Request membership for a public closed group
-export async function requestMembership(
-  groupId: string,
-  clerkId: string,
-  email: string,
-  name: string,
-  imageUrl: string | null = null
-): Promise<GroupMember> {
-  // Check if already a member or has pending request
-  const existing = await getMemberByClerkId(groupId, clerkId);
-  if (existing) {
-    return existing;
-  }
-
-  return addMember(groupId, clerkId, email, name, imageUrl, 'member', 'pending');
-}
-
-// Respond to membership request (captain action)
-export async function respondToMembershipRequest(
-  memberId: string,
-  approve: boolean
-): Promise<void> {
-  if (approve) {
-    await updateMember(memberId, { status: 'accepted', respondedAt: new Date() });
-  } else {
-    await removeMember(memberId);
-  }
-}
-
-// Leave group membership
-export async function leaveGroup(groupId: string, clerkId: string): Promise<void> {
-  const member = await getMemberByClerkId(groupId, clerkId);
-  if (member && member.role !== 'captain') {
-    await removeMember(member.id);
-  }
 }
 
 // ============ RATING OPERATIONS ============
@@ -865,7 +828,7 @@ export async function respondToInvitation(
       email,
       name,
       imageUrl,
-      'member',
+      'follower',
       'accepted'
     );
   }
@@ -1022,15 +985,15 @@ export function subscribeToMembers(
         email: data.email,
         name: data.name,
         imageUrl: data.imageUrl ?? null,
-        role: data.role ?? (data.isCaptain ? 'captain' : 'member'),
+        role: data.role ?? (data.isCaptain ? 'captain' : 'follower'),
         status: data.status === 'placeholder' ? 'accepted' : (data.status ?? 'accepted'),
         invitedAt: convertTimestamp(data.invitedAt),
         respondedAt: data.respondedAt ? convertTimestamp(data.respondedAt) : null,
       } as GroupMember;
     });
-    // Sort: captain first, then co-captains, then members, then followers
-    const roleOrder: Record<string, number> = { captain: 0, 'co-captain': 1, member: 2, follower: 3 };
-    callback(members.sort((a, b) => (roleOrder[a.role] ?? 4) - (roleOrder[b.role] ?? 4)));
+    // Sort: captain first, then co-captains, then followers
+    const roleOrder: Record<string, number> = { captain: 0, 'co-captain': 1, follower: 2 };
+    callback(members.sort((a, b) => (roleOrder[a.role] ?? 3) - (roleOrder[b.role] ?? 3)));
   });
 }
 
@@ -1311,7 +1274,7 @@ export async function claimObject(
       email || '',
       name,
       imageUrl,
-      'member',
+      'follower',
       'accepted'
     );
   }
