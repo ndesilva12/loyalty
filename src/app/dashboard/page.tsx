@@ -235,17 +235,24 @@ export default function DashboardPage() {
 
         {/* Popular Groups */}
         <div className="mb-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Flame className="w-4 h-4 text-orange-500" />
-            <h2 className="text-sm font-bold text-white">Popular</h2>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Flame className="w-4 h-4 text-teal-400" />
+              <h2 className="text-sm font-bold text-white">Popular</h2>
+            </div>
+            {popularGroups.length > 3 && (
+              <Link href="/dashboard/popular" className="text-xs text-teal-400 hover:text-teal-300 flex items-center gap-1">
+                Show more <ChevronRight className="w-3 h-3" />
+              </Link>
+            )}
           </div>
           {popularGroups.length > 0 ? (
-            <div className="space-y-2 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-3 sm:gap-3">
-              {popularGroups.map((group) => (
+            <div className="space-y-2.5 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-3 sm:gap-3">
+              {popularGroups.slice(0, 3).map((group) => (
                 <Link key={group.id} href={`/groups/${group.id}`}>
                   {/* Mobile: Compact row */}
                   <div className="sm:hidden flex items-center gap-3 p-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl transition-colors">
-                    <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center flex-shrink-0">
+                    <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-600 flex items-center justify-center flex-shrink-0">
                       <Flame className="w-4 h-4 text-white" />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -257,9 +264,13 @@ export default function DashboardPage() {
                     </div>
                     <ChevronRight className="w-4 h-4 text-gray-500 flex-shrink-0" />
                   </div>
+                </Link>
+              ))}
+              {popularGroups.slice(0, 6).map((group) => (
+                <Link key={group.id} href={`/groups/${group.id}`}>
                   {/* Desktop: Card */}
                   <Card className="hidden sm:block overflow-hidden hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 cursor-pointer h-full border border-white/10 bg-white/5">
-                    <div className="h-1 bg-gradient-to-r from-orange-500 to-red-600" />
+                    <div className="h-1 bg-gradient-to-r from-teal-500 to-cyan-600" />
                     <div className="p-3">
                       <h3 className="font-bold text-white text-sm truncate mb-1">{group.name}</h3>
                       {group.description && (
@@ -286,17 +297,24 @@ export default function DashboardPage() {
 
         {/* Trending Groups */}
         <div>
-          <div className="flex items-center gap-2 mb-2">
-            <TrendingUp className="w-4 h-4 text-blue-500" />
-            <h2 className="text-sm font-bold text-white">Trending</h2>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-yellow-500" />
+              <h2 className="text-sm font-bold text-white">Trending</h2>
+            </div>
+            {trendingGroups.length > 3 && (
+              <Link href="/dashboard/trending" className="text-xs text-yellow-500 hover:text-yellow-400 flex items-center gap-1">
+                Show more <ChevronRight className="w-3 h-3" />
+              </Link>
+            )}
           </div>
           {trendingGroups.length > 0 ? (
-            <div className="space-y-2 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-3 sm:gap-3">
-              {trendingGroups.map((group) => (
+            <div className="space-y-2.5 sm:space-y-0 sm:grid sm:grid-cols-2 lg:grid-cols-3 sm:gap-3">
+              {trendingGroups.slice(0, 3).map((group) => (
                 <Link key={group.id} href={`/groups/${group.id}`}>
                   {/* Mobile: Compact row */}
                   <div className="sm:hidden flex items-center gap-3 p-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl transition-colors">
-                    <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                    <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-yellow-600 to-lime-600 flex items-center justify-center flex-shrink-0">
                       <TrendingUp className="w-4 h-4 text-white" />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -308,9 +326,13 @@ export default function DashboardPage() {
                     </div>
                     <ChevronRight className="w-4 h-4 text-gray-500 flex-shrink-0" />
                   </div>
+                </Link>
+              ))}
+              {trendingGroups.slice(0, 6).map((group) => (
+                <Link key={group.id} href={`/groups/${group.id}`}>
                   {/* Desktop: Card */}
                   <Card className="hidden sm:block overflow-hidden hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 cursor-pointer h-full border border-white/10 bg-white/5">
-                    <div className="h-1 bg-gradient-to-r from-blue-500 to-purple-600" />
+                    <div className="h-1 bg-gradient-to-r from-yellow-600 to-lime-600" />
                     <div className="p-3">
                       <h3 className="font-bold text-white text-sm truncate mb-1">{group.name}</h3>
                       {group.description && (

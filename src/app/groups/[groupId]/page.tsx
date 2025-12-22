@@ -1133,7 +1133,6 @@ export default function GroupPage() {
           onUploadImage={(file) => uploadObjectImage(groupId, file)}
           existingEmails={members.filter((m) => m.email).map((m) => m.email!.toLowerCase())}
           groupId={groupId}
-          itemCategories={group?.itemCategories || []}
         />
       </Modal>
 
@@ -1146,7 +1145,6 @@ export default function GroupPage() {
         <BulkAddForm
           onSubmit={handleBulkAddObjects}
           onCancel={() => setShowBulkAddModal(false)}
-          itemCategories={group?.itemCategories || []}
         />
       </Modal>
 

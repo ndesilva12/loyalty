@@ -16,7 +16,6 @@ interface BulkAddFormProps {
     itemCategory: string | null;
   }>) => Promise<void>;
   onCancel: () => void;
-  itemCategories?: string[];
 }
 
 interface ParsedItem {
@@ -26,9 +25,8 @@ interface ParsedItem {
   linkUrl?: string;
 }
 
-export default function BulkAddForm({ onSubmit, onCancel, itemCategories = [] }: BulkAddFormProps) {
+export default function BulkAddForm({ onSubmit, onCancel }: BulkAddFormProps) {
   const [itemType, setItemType] = useState<ObjectType | null>(null);
-  const [itemCategory, setItemCategory] = useState<string | null>(null);
   const [bulkText, setBulkText] = useState('');
   const [loading, setLoading] = useState(false);
   const [fetchingMetadata, setFetchingMetadata] = useState(false);
@@ -165,7 +163,7 @@ Bob Wilson`,
         description: item.description || null,
         itemType,
         linkUrl: item.linkUrl || null,
-        itemCategory,
+        itemCategory: null,
       }));
 
       await onSubmit(items);
@@ -230,42 +228,6 @@ Bob Wilson`,
           </button>
         </div>
       </div>
-
-      {/* Category Selector */}
-      {itemType && itemCategories.length > 0 && (
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
-            Category
-          </label>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => setItemCategory(null)}
-              className={`px-3 py-1.5 rounded-xl border transition-all backdrop-blur-sm text-xs ${
-                itemCategory === null
-                  ? 'bg-lime-500/20 border-lime-500/50 text-lime-300'
-                  : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'
-              }`}
-            >
-              All
-            </button>
-            {itemCategories.map((category) => (
-              <button
-                key={category}
-                type="button"
-                onClick={() => setItemCategory(category)}
-                className={`px-3 py-1.5 rounded-xl border transition-all backdrop-blur-sm text-xs ${
-                  itemCategory === category
-                    ? 'bg-lime-500/20 border-lime-500/50 text-lime-300'
-                    : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'
-                }`}
-              >
-                {category}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Bulk Input */}
       {itemType && (

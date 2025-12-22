@@ -105,10 +105,10 @@ export default function DataTable({
     const range = max - min;
     const normalizedValue = range > 0 ? ((value - min) / range) * 100 : 50;
 
-    if (normalizedValue >= 75) return 'text-green-600 dark:text-green-400';
-    if (normalizedValue >= 50) return 'text-yellow-500 dark:text-yellow-400';
-    if (normalizedValue >= 25) return 'text-orange-500 dark:text-orange-400';
-    return 'text-red-500 dark:text-red-400';
+    if (normalizedValue >= 75) return 'text-green-400';
+    if (normalizedValue >= 50) return 'text-yellow-400';
+    if (normalizedValue >= 25) return 'text-orange-400';
+    return 'text-red-400';
   };
 
   const handleSort = (column: string) => {
@@ -307,27 +307,27 @@ export default function DataTable({
                       type="text"
                       value={editObjectData.name}
                       onChange={(e) => setEditObjectData((prev) => ({ ...prev, name: e.target.value }))}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800"
+                      className="w-full px-2 py-1 text-sm text-white border border-white/20 rounded-xl bg-white/5 placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-lime-500/50 focus:border-lime-500/50"
                       placeholder="Name"
                     />
                     <input
                       type="text"
                       value={editObjectData.description}
                       onChange={(e) => setEditObjectData((prev) => ({ ...prev, description: e.target.value }))}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800"
+                      className="w-full px-2 py-1 text-sm text-white border border-white/20 rounded-xl bg-white/5 placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-lime-500/50 focus:border-lime-500/50"
                       placeholder="Description"
                     />
                     <div className="flex gap-1">
                       <button
                         onClick={handleSaveObject}
                         disabled={saving}
-                        className="p-1 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50"
+                        className="p-1 bg-lime-600 text-white rounded-lg hover:bg-lime-500 disabled:opacity-50 transition-colors"
                       >
                         <Check className="w-3 h-3" />
                       </button>
                       <button
                         onClick={handleCancelEditObject}
-                        className="p-1 bg-gray-500 text-white rounded hover:bg-gray-600"
+                        className="p-1 bg-gray-600 text-white rounded-lg hover:bg-gray-500 transition-colors"
                       >
                         <X className="w-3 h-3" />
                       </button>
@@ -529,21 +529,38 @@ export default function DataTable({
         </div>
       )}
 
-      {/* Dropdown for object actions */}
-      {showObjectActions && dropdownPosition && (
-        <div
-          data-dropdown
-          className="fixed w-72 max-w-[calc(100vw-32px)] bg-gray-800/95 backdrop-blur-xl rounded-3xl shadow-lg border border-white/10 z-50 max-h-[70vh] overflow-y-auto"
-          style={{
-            top: dropdownPosition.top,
-            left: dropdownPosition.left,
-          }}
-        >
+      {/* Dropdown for object actions - modal on mobile, positioned dropdown on desktop */}
+      {showObjectActions && (
+        <>
+          {/* Mobile modal overlay */}
+          <div
+            className="sm:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+            onClick={() => {
+              setShowObjectActions(null);
+              setDropdownPosition(null);
+            }}
+          />
+          <div
+            data-dropdown
+            className="fixed z-50 max-h-[70vh] overflow-y-auto
+              sm:w-72 sm:max-w-[calc(100vw-32px)] sm:rounded-3xl
+              w-full bottom-0 left-0 right-0 sm:bottom-auto sm:left-auto sm:right-auto
+              rounded-t-3xl sm:rounded-3xl
+              bg-gray-800/95 backdrop-blur-xl shadow-lg border border-white/10"
+            style={dropdownPosition ? {
+              top: dropdownPosition.top,
+              left: dropdownPosition.left,
+            } : undefined}
+          >
           {(() => {
             const obj = displayObjects.find((o) => o.id === showObjectActions);
             if (!obj) return null;
             return (
               <div className="p-2 space-y-1">
+                {/* Mobile drag handle */}
+                <div className="sm:hidden flex justify-center py-1 -mt-1">
+                  <div className="w-10 h-1 bg-gray-600 rounded-full" />
+                </div>
                 {/* Rating mode toggle */}
                 {onToggleRatingMode && (
                   <div className="p-2 border-b border-gray-700">
@@ -646,6 +663,7 @@ export default function DataTable({
             );
           })()}
         </div>
+        </>
       )}
     </div>
   );
